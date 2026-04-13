@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin | Celli Cruz</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="icon" href="../assets/logo.png" type="image/png">
+  <style>
+    /* Estilos exclusivos do admin não cobertos por styles.css */
+    body { overflow-x: hidden; }
+    
+    .admin-section { display: none; }
+    
+    .icon-blue { background: #dbeafe; }
+    .icon-green { background: #d1fae5; }
+    .icon-yellow { background: #fef3cd; }
+    .icon-red { background: #fde8e8; }
+
+    .config-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .full-width { grid-column: 1 / -1; }
+
+    /* Info box */
+    .info-box {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-size: 14px;
+      color: #1e3a5f;
+      margin-bottom: 24px;
+    }
+    .info-box strong { display: block; margin-bottom: 4px; }
+
+    /* Logs */
+    .log-area {
+      background: #0d1117;
+      color: #58a6ff;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      padding: 20px;
+      border-radius: var(--radius-sm);
+      min-height: 200px;
+      max-height: 400px;
+      overflow-y: auto;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 900px) {
+      .config-form-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .full-width { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-layout">
+  <!-- ============================================================
+       SIDEBAR
+       ============================================================ -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-header">
+      <img src="../assets/logo.png" alt="Celli Cruz" class="sidebar-logo">
+      <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 8px;">Painel Administrativo</p>
+    </div>
+    <nav class="sidebar-nav">
+      <p class="sidebar-label">Principal</p>
+      <a href="#" class="sidebar-link active" data-section="imoveis" onclick="showSection('imoveis'); return false;">
+        <i class="fas fa-home"></i> <span>Imóveis</span>
+      </a>
+      <a href="#" class="sidebar-link" data-section="config" onclick="showSection('config'); return false;">
+        <i class="fas fa-cog"></i> <span>Configurações</span>
+      </a>
+      <a href="#" class="sidebar-link" data-section="usuarios" onclick="showSection('usuarios'); return false;">
+        <i class="fas fa-users"></i> <span>Usuários</span>
+      </a>
+      <a href="#" class="sidebar-link" data-section="carousel" onclick="showSection('carousel'); return false;">
+        <i class="fas fa-image"></i> <span>Carrossel</span>
+      </a>
+      <a href="#" class="sidebar-link" data-section="dados" onclick="showSection('dados'); return false;">
+        <i class="fas fa-database"></i> <span>Importar / Exportar</span>
+      </a>
+      <a href="#" class="sidebar-link" data-section="ajuda" onclick="showSection('ajuda'); return false;">
+        <i class="fas fa-question-circle"></i> <span>Ajuda & Documentação</span>
+      </a>
+
+      <p class="sidebar-label" style="margin-top: 32px;">Site</p>
+      <a href="../index.html" class="sidebar-link" target="_blank">
+        <i class="fas fa-globe"></i> <span>Ver Site</span>
+      </a>
+      <a href="imoveis.html" class="sidebar-link" target="_blank">
+        <i class="fas fa-list"></i> <span>Página de Imóveis</span>
+      </a>
+    </nav>
+    <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: rgba(255,255,255,0.3);">
+      Celli Cruz Admin v1.0
+    </div>
+  </aside>
+
+  <!-- ============================================================
+       CONTEÚDO PRINCIPAL
+       ============================================================ -->
+  <main class="admin-main">
+    <!-- TOP BAR -->
+    <div class="admin-topbar">
+      <div>
+        <h2 id="topbar-titulo">Gerenciar Imóveis</h2>
+        <p style="margin: 4px 0 0; font-size: 13px; color: var(--cinza-texto);">Logado como <strong id="admin-user-name">—</strong></p>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <a href="../index.html" target="_blank" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;">
+          <i class=\"fas fa-globe\"></i> Ver Site
+        </a>
+        <button class="btn btn-outline" onclick="logoutAdmin()" style="padding: 8px 16px; font-size: 13px;">
+          <i class="fas fa-sign-out-alt"></i> Sair
+        </button>
+      </div>
+    </div>
+
+    <div class="admin-content">
+      <!-- ============================================================
+           SEÇÃO: IMÓVEIS
+           ============================================================ -->
+      <div id="section-imoveis" class="admin-section">
+        <!-- STATS -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon icon-blue"><i class="fas fa-home"></i></div>
+            <div class="stat-info">
+              <p>Total de Imóveis</p>
+              <span id="stat-total">—</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-yellow">⭐</div>
+            <div class="stat-info">
+              <p>Em Destaque</p>
+              <span id="stat-destaques">—</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-green">🚀</div>
+            <div class="stat-info">
+              <p>Lançamentos</p>
+              <span id="stat-lancamentos">—</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon icon-red">✅</div>
+            <div class="stat-info">
+              <p>Prontos p/ Morar</p>
+              <span id="stat-prontos">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABELA -->
+        <div class="admin-panel">
+          <div class="panel-header">
+            <h3>Lista de Imóveis</h3>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="search-imovel" placeholder="Buscar imóvel..." 
+                style="padding: 8px 14px; border: 1.5px solid var(--cinza-borda); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; width: 200px;">
+              <button class="btn btn-primary" onclick="openNovo()" style="padding: 9px 18px; font-size: 14px;">
+                + Novo Imóvel
+              </button>
+            </div>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Foto</th>
+                  <th>Nome / Bairro</th>
+                  <th>Detalhes</th>
+                  <th>Status</th>
+                  <th>Destaque</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="imoveis-tbody">
+                <tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SEÇÃO: CONFIGURAÇÕES
+           ============================================================ -->
+      <div id="section-config" class="admin-section">
+        <div class="admin-panel">
+          <div class="panel-header">
+            <h3>Configurações do Site</h3>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn btn-primary" onclick="salvarConfig()" style="padding: 9px 18px; font-size: 14px;">
+                💾 Salvar Configurações
+              </button>
+            </div>
+          </div>
+          <div style="padding: 28px;">
+            <div class="info-box">
+              <strong>📌 Como usar</strong>
+              Altere as informações abaixo e clique em "Salvar Configurações". Depois exporte o JSON e substitua o arquivo <code>data/imoveis.json</code>.
+            </div>
+            <form id="form-config">
+              <div class="config-form-grid">
+                <div class="form-group">
+                  <label>Nome da Empresa</label>
+                  <input type="text" name="nomeEmpresa" placeholder="Celli Cruz Assessoria Imobiliária">
+                </div>
+                <div class="form-group">
+                  <label>Telefone</label>
+                  <input type="text" name="telefone" placeholder="(75) 4141-4777">
+                </div>
+                <div class="form-group">
+                  <label>WhatsApp (somente números)</label>
+                  <input type="text" name="whatsapp" placeholder="5575414141777">
+                </div>
+                <div class="form-group">
+                  <label>E-mail</label>
+                  <input type="email" name="email" placeholder="contato@cellicruz.com.br">
+                </div>
+                <div class="form-group full-width">
+                  <label>Endereço completo</label>
+                  <input type="text" name="endereco" placeholder="Rua Newton Vieira Rique, 18, São João...">
+                </div>
+                <div class="form-group">
+                  <label>Chamada principal (Hero)</label>
+                  <input type="text" name="heroChamada" placeholder="O lar que acompanha o seu ritmo.">
+                </div>
+                <div class="form-group">
+                  <label>Subtítulo do Hero</label>
+                  <input type="text" name="heroSubtitulo" placeholder="Encontre os melhores imóveis...">
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SEÇÃO: CARROSSEL
+           ============================================================ -->
+      <div id="section-carousel" class="admin-section">
+        <div class="admin-panel">
+          <div class="panel-header">
+            <h3>Carrossel de Publicidade</h3>
+            <button class="btn btn-primary" onclick="openNewCarouselItem()" style="padding: 9px 18px; font-size: 14px;">
+              + Novo Slide
+            </button>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Imagem</th>
+                  <th>Título</th>
+                  <th>Texto</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="carousel-tbody">
+                <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SEÇÃO: USUÁRIOS ADMIN
+           ============================================================ -->
+      <div id="section-usuarios" class="admin-section">
+        <div class="admin-panel">
+          <div class="panel-header">
+            <h3>Usuários Admin</h3>
+            <button class="btn btn-primary" onclick="openUserModal()" style="padding: 9px 18px; font-size: 14px;">
+              + Novo Usuário
+            </button>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Usuário</th>
+                  <th>Nome</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-tbody">
+                <tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SEÇÃO: DADOS
+           ============================================================ -->
+      <div id="section-dados" class="admin-section">
+        <div class="admin-panel" style="margin-bottom: 24px;">
+          <div class="panel-header">
+            <h3>📥 Importar / Exportar Dados</h3>
+          </div>
+          <div style="padding: 28px;">
+            <div class="info-box">
+              <strong>💡 Como funciona a persistência</strong>
+              O site usa o arquivo <code>data/imoveis.json</code> como banco de dados. Para salvar as alterações feitas neste admin:
+              <br><br>
+              1. Faça as edições nos imóveis<br>
+              2. Clique em <strong>"Exportar JSON"</strong><br>
+              3. Substitua o arquivo <code>data/imoveis.json</code> pelo arquivo baixado<br>
+              4. Para produção, configure um backend PHP/Node para salvar automaticamente (ver Ajuda)
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+              <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
+                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;">📤 Exportar</h4>
+                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Baixa o arquivo JSON com todas as alterações feitas nesta sessão.</p>
+                <button class="btn btn-primary" onclick="exportarJSON()">📥 Baixar imoveis.json</button>
+              </div>
+              <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
+                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;">📂 Importar</h4>
+                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Carrega um arquivo JSON para substituir os dados atuais.</p>
+                <button class="btn btn-outline" onclick="importarJSON()">📂 Selecionar arquivo JSON</button>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px;">
+              <h4 style="color: var(--azul-escuro); margin-bottom: 12px;"><i class="fas fa-file-code"></i> JSON Atual (para copiar)</h4>
+              <div class="log-area" id="json-preview">Clique em "Ver JSON atual" para visualizar.</div>
+              <br>
+              <button class="btn btn-outline" onclick="mostrarJSON()">👁️ Ver JSON atual</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SEÇÃO: AJUDA
+           ============================================================ -->
+      <div id="section-ajuda" class="admin-section">
+        <div class="admin-panel">
+          <div class="panel-header"><h3><i class="fas fa-question-circle"></i> Documentação & Ajuda</h3></div>
+          <div style="padding: 28px; max-width: 800px;">
+            
+            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-folder"></i> Estrutura de Arquivos</h4>
+            <div class="log-area" style="color: #79c0ff; margin-bottom: 24px;">
+cellicruz/<br>
+├── index.html          <i class="fas fa-arrow-right"></i> Página inicial<br>
+├── pages/<br>
+│   ├── imoveis.html    <i class="fas fa-arrow-right"></i> Listagem de imóveis<br>
+│   ├── imovel-detalhe.html <i class="fas fa-arrow-right"></i> Detalhe do imóvel<br>
+│   └── admin.html      <i class="fas fa-arrow-right"></i> Este painel admin<br>
+├── css/<br>
+│   └── styles.css      <i class="fas fa-arrow-right"></i> Estilos principais<br>
+├── js/<br>
+│   ├── main.js         <i class="fas fa-arrow-right"></i> JavaScript do site<br>
+│   └── admin.js        <i class="fas fa-arrow-right"></i> JavaScript do admin<br>
+├── assets/<br>
+│   └── logo.png        <i class="fas fa-arrow-right"></i> Logotipo<br>
+└── data/<br>
+    └── imoveis.json    <i class="fas fa-arrow-right"></i> <i class="fas fa-database"></i> Banco de dados
+            </div>
+
+            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-pen"></i> Como alterar informações</h4>
+            <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
+              <p style="font-size: 15px; line-height: 1.8; color: var(--cinza-texto);">
+                <strong style="color: var(--azul-escuro);">Imóveis:</strong> Vá para "Imóveis" <i class="fas fa-arrow-right"></i> clique no <i class="fas fa-pen"></i> do imóvel <i class="fas fa-arrow-right"></i> edite <i class="fas fa-arrow-right"></i> clique "Salvar" <i class="fas fa-arrow-right"></i> exporte o JSON.<br><br>
+                <strong style="color: var(--azul-escuro);">Fotos:</strong> Cole a URL da imagem no campo "URL da Imagem". Use serviços como Imgur, Cloudinary, ou suas próprias fotos hospedadas.<br><br>
+                <strong style="color: var(--azul-escuro);">Config geral:</strong> Vá em "Configurações" → edite telefone, WhatsApp, e-mail, etc.<br><br>
+                <strong style="color: var(--azul-escuro);">Preview:</strong> Ao editar um imóvel, você vê uma prévia do card em tempo real no modal.
+              </p>
+            </div>
+
+            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-wrench"></i> Integração com E-mail</h4>
+            <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
+              <p style="font-size: 14px; line-height: 1.8; color: var(--cinza-texto);">
+                Para receber os formulários por e-mail, siga um destes passos:<br><br>
+                <strong>Opção 1 - Formspree (gratuito, sem código):</strong><br>
+                1. Crie conta em formspree.io<br>
+                2. Crie um formulário e pegue o ID (ex: xabc1234)<br>
+                3. Em js/main.js, substitua <code>simulateEmailSend</code> por:<br>
+                <code style="background: #0d1117; color: #79c0ff; padding: 4px 8px; border-radius: 4px; display: block; margin-top: 8px;">
+                fetch('https://formspree.io/f/SEU_ID', { method:'POST', body: JSON.stringify(data), headers:{'Content-Type':'application/json'} })
+                </code><br>
+                <strong>Opção 2 - EmailJS (gratuito):</strong> emailjs.com<br>
+                <strong>Opção 3 - Backend PHP:</strong> Ver exemplo no arquivo js/admin.js
+              </p>
+            </div>
+
+            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-floppy-disk"></i> Backend para salvar dados automaticamente</h4>
+            <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px;">
+              <p style="font-size: 14px; line-height: 1.8; color: var(--cinza-texto);">
+                Crie o arquivo <code>api/save.php</code> no servidor:
+              </p>
+              <div class="log-area" style="margin-top: 12px; font-size: 12px;">
+&lt;?php<br>
+header('Content-Type: application/json');<br>
+header('Access-Control-Allow-Origin: *');<br>
+header('Access-Control-Allow-Methods: POST');<br>
+<br>
+$data = file_get_contents('php://input');<br>
+json_decode($data); // valida JSON<br>
+<br>
+if (json_last_error() === JSON_ERROR_NONE) {<br>
+&nbsp;&nbsp;file_put_contents('../data/imoveis.json', $data);<br>
+&nbsp;&nbsp;echo json_encode(['ok' => true]);<br>
+} else {<br>
+&nbsp;&nbsp;http_response_code(400);<br>
+&nbsp;&nbsp;echo json_encode(['error' => 'JSON inválido']);<br>
+}<br>
+?>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /admin-content -->
+  </main>
+</div>
+
+<!-- ============================================================
+     MODAL - CRIAR / EDITAR IMÓVEL
+     ============================================================ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-titulo">Novo Imóvel</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-imovel">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Nome do Imóvel *</label>
+            <input type="text" name="nome" placeholder="Ex: Sândalo Residence" required>
+          </div>
+          <div class="form-group">
+            <label>Bairro *</label>
+            <input type="text" name="bairro" placeholder="Ex: Papagaio">
+          </div>
+          <div class="form-group">
+            <label>Cidade</label>
+            <input type="text" name="cidade" placeholder="Feira de Santana - Bahia">
+          </div>
+          <div class="form-group">
+            <label>Nº de Quartos</label>
+            <select name="quartos">
+              <option value="1">1 Quarto</option>
+              <option value="2" selected>2 Quartos</option>
+              <option value="3">3 Quartos</option>
+              <option value="4">4 Quartos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Metragem mínima (m²)</label>
+            <input type="text" name="metragem" placeholder="Ex: 36,30">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select name="status">
+              <option>Lançamento</option>
+              <option>Em Obras</option>
+              <option>Pronto para Morar</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tag do Badge</label>
+            <input type="text" name="tag" placeholder="Ex: Lançamento">
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Fonte da Imagem Principal *</label>
+            <div class="image-source-row">
+              <label><input type="radio" name="imagemSource" value="url" checked> URL</label>
+              <label><input type="radio" name="imagemSource" value="upload"> Upload</label>
+            </div>
+          </div>
+          <div class="form-group image-imagem-url" style="grid-column: 1/-1;">
+            <label>URL da Imagem Principal *</label>
+            <input type="url" name="imagemUrl" placeholder="https://...">
+            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
+              Use uma URL pública ou um banner de 1240x420.
+            </small>
+          </div>
+          <div class="form-group image-imagem-upload" style="grid-column: 1/-1; display:none;">
+            <label>Upload da Imagem Principal *</label>
+            <input type="file" name="imagemFile" accept="image/*">
+            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
+              Faça upload de um banner 1240x420. O arquivo será salvo em assets/uploads/ se o backend estiver disponível.
+            </small>
+          </div>
+          <input type="hidden" name="imagemExisting">
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Descrição do Imóvel</label>
+            <textarea name="descricao" rows="3" placeholder="Descreva o empreendimento..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Localização (texto)</label>
+            <input type="text" name="localizacao" placeholder="Ex: Papagaio, Feira de Santana, BA">
+          </div>
+          <div class="form-group">
+            <label>Link Google Maps</label>
+            <input type="url" name="mapsLink" placeholder="https://maps.google.com/...">
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Diferenciais (separados por vírgula)</label>
+            <input type="text" name="diferenciais" placeholder="Ex: Piscina, Academia, Salão de Festas, Playground">
+          </div>
+          <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" name="destaque" id="check-destaque" style="width: 18px; height: 18px;">
+            <label for="check-destaque" style="margin: 0; cursor: pointer;">⭐ Exibir em destaque na home</label>
+          </div>
+        </div>
+
+        <!-- PREVIEW -->
+        <div class="preview-card">
+          <p class="preview-label">👁️ Pré-visualização do Card</p>
+          <div id="card-preview">Preencha o formulário para ver a prévia...</div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarImovel()"><i class="fas fa-floppy-disk"></i> Salvar Imóvel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-carousel-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-carousel-title">Novo Slide</h3>
+      <button class="modal-close" onclick="closeCarouselModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-carousel-item">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Título *</label>
+            <input type="text" name="title" placeholder="Ex: Oferta especial" required>
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Texto</label>
+            <textarea name="subtitle" rows="3" placeholder="Ex: Campanha com condições exclusivas..."></textarea>
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Fonte da Imagem do Slide *</label>
+            <div class="image-source-row">
+              <label><input type="radio" name="imageSource" value="url" checked> URL</label>
+              <label><input type="radio" name="imageSource" value="upload"> Upload</label>
+            </div>
+          </div>
+          <div class="form-group image-image-url" style="grid-column: 1/-1;">
+            <label>URL da Imagem *</label>
+            <input type="url" name="imageUrl" placeholder="https://..." required>
+          </div>
+          <div class="form-group image-image-upload" style="grid-column: 1/-1; display:none;">
+            <label>Upload da Imagem *</label>
+            <input type="file" name="imageFile" accept="image/*">
+            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
+              Envie um banner 1240x420 para o carrossel. O arquivo será salvo em assets/uploads/ se o backend estiver disponível.
+            </small>
+          </div>
+          <input type="hidden" name="imageExisting">
+          <div class="form-group" style="grid-column: 1/-1; margin-top: 24px; border-top: 1px solid var(--cinza-borda); padding-top: 20px;">
+            <label style="font-weight: 700; margin-bottom: 12px; display: block;">📱 Imagem para Dispositivos Móveis (Opcional)</label>
+            <small style="color: var(--cinza-texto); font-size: 12px; margin-bottom: 12px; display: block;">
+              Forneça uma imagem otimizada para celulares. Recomendado: <strong>768x300</strong>. Esta será exibida em telas com menos de 768px.
+            </small>
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Fonte da Imagem Mobile</label>
+            <div class="image-source-row">
+              <label><input type="radio" name="imageMobileSource" value="url"> URL</label>
+              <label><input type="radio" name="imageMobileSource" value="upload"> Upload</label>
+            </div>
+          </div>
+          <div class="form-group image-imageMobile-url" style="grid-column: 1/-1;">
+            <label>URL da Imagem Mobile</label>
+            <input type="url" name="imageMobileUrl" placeholder="https://...">
+            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
+              Use uma URL pública ou um banner de 768x300 para celular.
+            </small>
+          </div>
+          <div class="form-group image-imageMobile-upload" style="grid-column: 1/-1; display:none;">
+            <label>Upload da Imagem Mobile</label>
+            <input type="file" name="imageMobileFile" accept="image/*">
+            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
+              Envie um banner 768x300 para celular. O arquivo será salvo em assets/uploads/ se o backend estiver disponível.
+            </small>
+          </div>
+          <input type="hidden" name="imageMobileExisting">
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Link do slide</label>
+            <input type="url" name="link" placeholder="pages/imoveis.html">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeCarouselModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCarouselItem()"><i class="fas fa-floppy-disk"></i> Salvar Slide</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-user-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-user-title">Novo Usuário</h3>
+      <button class="modal-close" onclick="closeUserModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-user-item">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Nome completo *</label>
+            <input type="text" name="name" placeholder="Ex: Nome do Admin" required>
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Usuário *</label>
+            <input type="text" name="username" placeholder="Ex: admin" required>
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Senha <small style="font-weight:400; color: var(--cinza-texto);">(deixe em branco para não alterar)</small></label>
+            <input type="password" name="password" placeholder="********">
+          </div>
+          <div class="form-group" style="grid-column: 1/-1;">
+            <label>Confirmar senha</label>
+            <input type="password" name="passwordConfirm" placeholder="********">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeUserModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveUser()"><i class="fas fa-floppy-disk"></i> Salvar Usuário</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/admin-auth.js"></script>
+<script src="../js/admin.js"></script>
+<script>
+// Função auxiliar para mostrar JSON atual
+function mostrarJSON() {
+  document.getElementById('json-preview').textContent = JSON.stringify(appData, null, 2);
+}
+
+// Atualiza título topbar ao mudar seção
+const originais = {
+  imoveis: 'Gerenciar Imóveis',
+  config: 'Configurações do Site',
+  usuarios: 'Usuários Admin',
+  carousel: 'Carrossel de Publicidade',
+  dados: 'Importar / Exportar Dados',
+  ajuda: 'Ajuda & Documentação'
+};
+
+const _showSection = showSection;
+window.showSection = function(id) {
+  _showSection(id);
+  document.getElementById('topbar-titulo').textContent = originais[id] || 'Admin';
+};
+</script>
+</body>
+</html>

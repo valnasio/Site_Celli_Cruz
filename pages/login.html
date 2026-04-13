@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Admin | Celli Cruz</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="icon" href="../assets/logo.png" type="image/png">
+  <style>
+    body { background: radial-gradient(circle at top, rgba(255,255,255,0.92), rgba(245,246,248,1)); }
+    .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px; }
+    .login-card { width: 100%; max-width: 420px; background: white; border-radius: var(--radius); box-shadow: 0 24px 80px rgba(0,0,0,0.12); padding: 36px; }
+    .login-card h1 { margin-bottom: 16px; font-size: 28px; color: var(--azul-escuro); }
+    .login-card p { margin-bottom: 26px; color: var(--cinza-texto); line-height: 1.6; }
+    .login-card .form-group { margin-bottom: 18px; }
+    .login-card label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--azul-escuro); }
+    .login-card input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--cinza-borda); border-radius: var(--radius-sm); }
+    .login-card button { width: 100%; margin-top: 8px; }
+    .login-error { margin-top: 18px; color: var(--vermelho); font-size: 14px; min-height: 20px; }
+    .login-footer { margin-top: 24px; color: var(--cinza-texto); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <h1>Login Admin</h1>
+      <p>Faça login para acessar o painel administrativo.</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Usuário</label>
+          <input id="username" name="username" type="text" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Entrar</button>
+      </form>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-footer">
+        <p>Esqueci minha senha? Entre em contato com o suporte.</p>
+  </div>
+
+  <script src="../js/admin-auth.js"></script>
+</body>
+</html>

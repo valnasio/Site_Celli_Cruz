@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imóveis | Celli Cruz Assessoria Imobiliária</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="icon" href="../assets/logo.png" type="image/png">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="../index.html" class="logo">
+      <img src="../assets/logo.png" alt="Celli Cruz">
+    </a>
+    <nav class="nav">
+      <a href="../index.html" class="nav-link">Início</a>
+      <a href="imoveis.html" class="nav-link active">Imóveis</a>
+      <a href="../index.html#sobre" class="nav-link">Sobre</a>
+      <a href="../index.html#contato" class="nav-link">Contato</a>
+      <a href="#" class="nav-cta js-whatsapp" target="_blank" onclick="openWhatsAppModal(); return false;"><i class="fas fa-comments"></i> WhatsApp</a>
+    </nav>
+    <button class="menu-toggle"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<section class="page-header">
+  <div class="container">
+    <p class="section-label" style="color: rgba(255,255,255,0.6);">Portfólio Completo</p>
+    <h1>Nossos Imóveis</h1>
+    <p>Encontre o imóvel perfeito para você e sua família em Feira de Santana</p>
+  </div>
+</section>
+
+<!-- FILTROS -->
+<div class="filtros-section">
+  <div class="container filtros-inner">
+    <span style="font-size: 14px; font-weight: 600; color: var(--azul-escuro); margin-right: 8px; white-space: nowrap;">Filtrar:</span>
+    <button class="filtro-btn active" data-filtro="todos">Todos</button>
+    <button class="filtro-btn" data-filtro="Lançamento">Lançamentos</button>
+    <button class="filtro-btn" data-filtro="Em Obras">Em Obras</button>
+    <button class="filtro-btn" data-filtro="Pronto para Morar">Prontos p/ Morar</button>
+    <button class="filtro-btn" data-filtro="2">2 Quartos</button>
+    <button class="filtro-btn" data-filtro="3">3+ Quartos</button>
+  </div>
+</div>
+
+<!-- GRID DE IMÓVEIS -->
+<section class="vitrine-section section-pad">
+  <div class="container">
+    <!-- Contador -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 12px;">
+      <p style="color: var(--cinza-texto); font-size: 15px;">
+        Mostrando <strong id="count-imoveis">—</strong> imóveis
+      </p>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <label style="font-size: 14px; color: var(--cinza-texto);">Ordenar por:</label>
+        <select id="ordenar" style="padding: 8px 12px; border: 1.5px solid var(--cinza-borda); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--texto); background: white; cursor: pointer;">
+          <option value="nome">Nome A-Z</option>
+          <option value="quartos">Quartos</option>
+          <option value="metragem">Metragem</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="imoveis-grid" id="lista-imoveis">
+      <div style="grid-column: 1/-1; text-align: center; padding: 80px; color: var(--cinza-texto);">
+        <div style="font-size: 40px; margin-bottom: 16px;"><i class="fas fa-spinner fa-spin" style="color: var(--vermelho);"></i></div>
+        <p>Carregando imóveis...</p>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" style="display: none; text-align: center; padding: 80px 20px;">
+        <div style="font-size: 56px; margin-bottom: 20px;"><i class="fas fa-home"></i></div>
+      <h3 style="color: var(--azul-escuro); margin-bottom: 10px;">Nenhum imóvel encontrado</h3>
+      <p style="color: var(--cinza-texto);">Tente remover os filtros ou entre em contato para verificar disponibilidade.</p>
+      <br>
+      <a href="../index.html#contato" class="btn btn-primary" style="margin-top: 8px;">Falar com consultor</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA RODAPÉ -->
+<section class="cta-section" style="padding: 60px 0;">
+  <div class="container" style="text-align: center;">
+    <h2 style="color: white; font-size: clamp(26px, 3vw, 36px); margin-bottom: 14px;">Não encontrou o que procurava?</h2>
+    <p style="color: rgba(255,255,255,0.75); margin-bottom: 30px; font-size: 17px;">Nossa equipe pode ajudar a encontrar o imóvel ideal para o seu perfil.</p>
+    <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+      <a href="#" class="btn btn-primary js-whatsapp" target="_blank" onclick="openWhatsAppModal(); return false;"><i class="fas fa-comments"></i> Falar no WhatsApp</a>
+      <a href="../index.html#contato" class="btn btn-outline-white"><i class="fas fa-envelope"></i> Enviar mensagem</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <img src="../assets/logo.png" alt="Celli Cruz" class="footer-logo">
+        <p class="footer-desc">Especialistas no mercado imobiliário de Feira de Santana há mais de uma década.</p>
+        <div class="footer-social">
+          <a href="#" class="social-btn"><i class="fas fa-camera"></i></a>
+          <a href="#" class="social-btn"><i class="fas fa-user"></i></a>
+          <a href="#" class="social-btn js-whatsapp" target="_blank" onclick="openWhatsAppModal(); return false;"><i class="fas fa-comments"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Navegação</h4>
+        <a href="../index.html" class="footer-link">Início</a>
+        <a href="imoveis.html" class="footer-link">Imóveis</a>
+        <a href="../index.html#sobre" class="footer-link">Sobre</a>
+        <a href="../index.html#contato" class="footer-link">Contato</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contato</h4>
+        <a href="tel:7541414777" class="footer-link js-telefone">(75) 4141-4777</a>
+        <a href="mailto:contato@cellicruz.com.br" class="footer-link js-email">contato@cellicruz.com.br</a>
+        <span class="footer-link js-endereco" style="cursor: default;">Feira de Santana - BA</span>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 Celli Cruz Assessoria Imobiliária.</span>
+    </div>
+  </div>
+</footer>
+
+<!-- WHATSAPP -->
+<div class="whatsapp-float">
+  <a href="#" class="whatsapp-btn js-whatsapp" target="_blank" aria-label="WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+// Lógica específica da página de imóveis
+document.addEventListener('DOMContentLoaded', async () => {
+  const dados = await loadData();
+  if (!dados) return;
+
+  let imoveisVisiveis = [...dados.imoveis];
+  let filtroAtivo = 'todos';
+
+  function renderLista() {
+    const grid = document.getElementById('lista-imoveis');
+    const empty = document.getElementById('empty-state');
+    const count = document.getElementById('count-imoveis');
+
+    // Ordenação
+    const ord = document.getElementById('ordenar').value;
+    imoveisVisiveis.sort((a, b) => {
+      if (ord === 'nome') return a.nome.localeCompare(b.nome);
+      if (ord === 'quartos') return a.quartos - b.quartos;
+      if (ord === 'metragem') return parseFloat(a.metragem) - parseFloat(b.metragem);
+      return 0;
+    });
+
+    count.textContent = imoveisVisiveis.length;
+
+    if (imoveisVisiveis.length === 0) {
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+    } else {
+      grid.style.display = 'grid';
+      empty.style.display = 'none';
+      grid.innerHTML = imoveisVisiveis.map(i => criarCardImovel(i)).join('');
+      setTimeout(initAnimations, 80);
+    }
+  }
+
+  function aplicarFiltro(filtro) {
+    filtroAtivo = filtro;
+    imoveisVisiveis = dados.imoveis.filter(i => {
+      if (filtro === 'todos') return true;
+      if (filtro === '2') return i.quartos === 2;
+      if (filtro === '3') return i.quartos >= 3;
+      return i.status === filtro;
+    });
+    renderLista();
+  }
+
+  // Botões de filtro
+  document.querySelectorAll('.filtro-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      aplicarFiltro(btn.dataset.filtro);
+    });
+  });
+
+  // Ordenar
+  document.getElementById('ordenar').addEventListener('change', renderLista);
+
+  renderLista();
+});
+</script>
+</body>
+</html>

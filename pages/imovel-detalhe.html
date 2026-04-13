@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imóvel | Celli Cruz</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="icon" href="../assets/logo.png" type="image/png">
+  <style>
+    .detalhe-hero {
+      height: 480px;
+      position: relative;
+      overflow: hidden;
+      margin-top: 72px;
+    }
+    .detalhe-hero img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .detalhe-hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(26,42,58,0.9) 0%, rgba(26,42,58,0.2) 60%, transparent 100%);
+      display: flex; align-items: flex-end;
+      padding: 40px;
+    }
+    .detalhe-hero-info { color: white; }
+    .detalhe-hero-info h1 { font-size: clamp(28px, 4vw, 48px); color: white; margin-bottom: 8px; }
+    
+    .detalhe-layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 40px;
+      padding: 60px 0;
+    }
+    
+    .detalhe-section { margin-bottom: 40px; }
+    .detalhe-section h3 { font-size: 20px; color: var(--azul-escuro); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--cinza-borda); }
+
+    .galeria-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+    .galeria-grid img { border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition); aspect-ratio: 4/3; object-fit: cover; }
+    .galeria-grid img:hover { transform: scale(1.03); box-shadow: var(--sombra-hover); }
+
+    .diferenciais-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .diferencial-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--cinza-bg); border-radius: var(--radius-sm); font-size: 14px; color: var(--azul-escuro); font-weight: 500; }
+
+    .plantas-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .planta-tab { padding: 8px 16px; border: 1.5px solid var(--cinza-borda); border-radius: 20px; background: white; font-size: 13px; cursor: pointer; transition: var(--transition); }
+    .planta-tab.active { background: var(--azul-escuro); color: white; border-color: var(--azul-escuro); }
+
+    .planta-info { background: var(--cinza-bg); border-radius: var(--radius); padding: 24px; }
+
+    /* Sidebar */
+    .detalhe-sidebar { position: sticky; top: 90px; }
+    .sidebar-card { background: white; border-radius: var(--radius); border: 1px solid var(--cinza-borda); box-shadow: var(--sombra); overflow: hidden; margin-bottom: 20px; }
+    .sidebar-card-header { background: var(--azul-escuro); padding: 20px; color: white; }
+    .sidebar-card-header h3 { color: white; font-size: 18px; margin-bottom: 4px; }
+    .sidebar-card-body { padding: 24px; }
+
+    .specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .spec-item { text-align: center; padding: 14px; background: var(--cinza-bg); border-radius: var(--radius-sm); }
+    .spec-item .spec-val { font-family: serif; font-size: 22px; font-weight: 700; color: var(--azul-escuro); }
+    .spec-item .spec-key { font-size: 12px; color: var(--cinza-texto); margin-top: 4px; }
+
+    @media (max-width: 900px) {
+      .detalhe-layout { grid-template-columns: 1fr; }
+      .detalhe-sidebar { position: static; }
+      .galeria-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="../index.html" class="logo">
+      <img src="../assets/logo.png" alt="Celli Cruz">
+    </a>
+    <nav class="nav">
+      <a href="../index.html" class="nav-link">Início</a>
+      <a href="imoveis.html" class="nav-link active">Imóveis</a>
+      <a href="../index.html#sobre" class="nav-link">Sobre</a>
+      <a href="../index.html#contato" class="nav-link">Contato</a>
+      <a href="#" class="nav-cta js-whatsapp" target="_blank" onclick="openWhatsAppModal(); return false;"><i class="fas fa-comments"></i> WhatsApp</a>
+    </nav>
+    <button class="menu-toggle"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<!-- BREADCRUMB -->
+<div style="margin-top: 72px; background: var(--cinza-bg); padding: 12px 0; border-bottom: 1px solid var(--cinza-borda);">
+  <div class="container">
+    <span style="font-size: 13px; color: var(--cinza-texto);">
+      <a href="../index.html" style="color: var(--cinza-texto);">Início</a>
+      <span style="margin: 0 8px;">›</span>
+      <a href="imoveis.html" style="color: var(--cinza-texto);">Imóveis</a>
+      <span style="margin: 0 8px;">›</span>
+      <span id="breadcrumb-nome" style="color: var(--azul-escuro); font-weight: 600;">Carregando...</span>
+    </span>
+  </div>
+</div>
+
+<!-- HERO DO IMÓVEL -->
+<div class="detalhe-hero" id="detalhe-hero">
+  <img id="hero-img" src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&q=80" alt="">
+  <div class="detalhe-hero-overlay">
+    <div class="detalhe-hero-info">
+      <span id="hero-badge" class="imovel-badge" style="position: static; display: inline-block; margin-bottom: 10px;">Lançamento</span>
+      <h1 id="hero-nome">Carregando...</h1>
+      <p id="hero-local" style="color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 6px; font-size: 16px;">
+        <i class="fas fa-map-pin"></i> <span></span>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEÚDO PRINCIPAL -->
+<section style="background: white;">
+  <div class="container">
+    <div class="detalhe-layout">
+      <!-- COLUNA PRINCIPAL -->
+      <div>
+        <!-- DESCRIÇÃO -->
+        <div class="detalhe-section fade-in-up">
+          <h3>Sobre o Empreendimento</h3>
+          <p id="descricao" style="color: var(--cinza-texto); font-size: 16px; line-height: 1.8;">Carregando...</p>
+        </div>
+
+        <!-- GALERIA -->
+        <div class="detalhe-section fade-in-up" id="galeria-section">
+          <h3>Galeria de Imagens</h3>
+          <div class="galeria-grid" id="galeria-grid"></div>
+        </div>
+
+        <!-- DIFERENCIAIS -->
+        <div class="detalhe-section fade-in-up" id="dif-section">
+          <h3>Diferenciais e Lazer</h3>
+          <div class="diferenciais-lista" id="dif-lista"></div>
+        </div>
+
+        <!-- PLANTAS -->
+        <div class="detalhe-section fade-in-up" id="plantas-section">
+          <h3>Plantas</h3>
+          <div class="plantas-tabs" id="plantas-tabs"></div>
+          <div class="planta-info" id="planta-info"></div>
+        </div>
+
+        <!-- LOCALIZAÇÃO -->
+        <div class="detalhe-section fade-in-up">
+          <h3>Localização</h3>
+          <p id="localizacao-texto" style="color: var(--cinza-texto); margin-bottom: 16px;"></p>
+          <a id="maps-link" href="#" target="_blank" class="btn btn-outline" style="margin-bottom: 20px;">
+            <i class="fas fa-map-pin"></i> Ver no Google Maps
+          </a>
+          <div style="border-radius: var(--radius); overflow: hidden; height: 300px; box-shadow: var(--sombra);">
+            <iframe id="mapa-frame" src="" allowfullscreen loading="lazy" 
+              style="width:100%; height:100%; border:none;" title="Mapa"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="detalhe-sidebar">
+        <!-- Card de specs -->
+        <div class="sidebar-card fade-in-up">
+          <div class="sidebar-card-header">
+            <h3 id="sidebar-nome">Imóvel</h3>
+            <p style="color: rgba(255,255,255,0.7); font-size: 14px;" id="sidebar-cidade">Feira de Santana - BA</p>
+          </div>
+          <div class="sidebar-card-body">
+            <div class="specs-grid">
+              <div class="spec-item">
+                <div class="spec-val" id="spec-quartos">2</div>
+                <div class="spec-key">Quartos</div>
+              </div>
+              <div class="spec-item">
+                <div class="spec-val" id="spec-metro">—</div>
+                <div class="spec-key">m² mínimo</div>
+              </div>
+            </div>
+            <a href="#" class="btn btn-primary" style="width: 100%; justify-content: center; margin-bottom: 12px; js-whatsapp-imovel" onclick="openWhatsAppModal(); return false;">
+              <i class="fas fa-comments"></i> Solicitar via WhatsApp
+            </a>
+            <a href="../index.html#contato" class="btn btn-outline" style="width: 100%; justify-content: center;">
+              <i class="fas fa-envelope"></i> Enviar mensagem
+            </a>
+          </div>
+        </div>
+
+        <!-- Form rápido -->
+        <div class="sidebar-card fade-in-up">
+          <div class="sidebar-card-body">
+            <h4 style="color: var(--azul-escuro); margin-bottom: 6px; font-size: 17px;">Tenho interesse!</h4>
+            <p style="font-size: 13px; color: var(--cinza-texto); margin-bottom: 18px;">Um consultor entrará em contato.</p>
+            <form class="js-contact-form">
+              <input type="hidden" name="imovel" id="form-imovel-nome">
+              <div class="form-group">
+                <input type="text" name="nome" placeholder="Seu nome *" required>
+              </div>
+              <div class="form-group">
+                <input type="tel" name="telefone" placeholder="Telefone *" required>
+              </div>
+              <div class="form-group">
+                <input type="email" name="email" placeholder="E-mail">
+              </div>
+              <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
+                Quero ser contactado <i class="fas fa-arrow-right"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIS IMÓVEIS -->
+<section class="vitrine-section section-pad" style="background: var(--cinza-bg);">
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; flex-wrap: wrap; gap: 16px;">
+      <div>
+        <p class="section-label">Confira também</p>
+        <h2 class="section-title">Outros Imóveis</h2>
+      </div>
+      <a href="imoveis.html" class="btn btn-outline">Ver todos <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="imoveis-grid" id="outros-imoveis"></div>
+  </div>
+</section>
+
+<!-- WHATSAPP -->
+<div class="whatsapp-float">
+  <a href="#" class="whatsapp-btn js-whatsapp" target="_blank">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+</div>
+
+<script src="../js/main.js"></script>
+<script>
+function resolveMediaPath(src) {
+  if (!src) return src;
+  if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('/')) return src;
+  return '../' + src;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(window.location.search);
+  const id = parseInt(params.get('id'));
+
+  const dados = await loadData();
+  if (!dados) return;
+
+  const imovel = dados.imoveis.find(i => i.id === id);
+  if (!imovel) {
+    document.title = 'Imóvel não encontrado | Celli Cruz';
+    return;
+  }
+
+  // Title
+  document.title = `${imovel.nome} | Celli Cruz`;
+
+  // Hero
+  document.getElementById('hero-img').src = resolveMediaPath(imovel.imagem);
+  document.getElementById('hero-img').alt = imovel.nome;
+  document.getElementById('hero-nome').textContent = imovel.nome;
+  document.getElementById('hero-badge').textContent = imovel.tag;
+  document.querySelector('#hero-local span').textContent = `${imovel.bairro}, ${imovel.cidade}`;
+  document.getElementById('breadcrumb-nome').textContent = imovel.nome;
+
+  // Descrição
+  document.getElementById('descricao').textContent = imovel.descricao;
+
+  // Sidebar
+  document.getElementById('sidebar-nome').textContent = imovel.nome;
+  document.getElementById('sidebar-cidade').textContent = imovel.cidade;
+  document.getElementById('spec-quartos').textContent = imovel.quartos;
+  document.getElementById('spec-metro').textContent = imovel.metragem;
+  document.getElementById('form-imovel-nome').value = imovel.nome;
+
+  // WhatsApp com imovel
+  const wpMsg = encodeURIComponent(`Olá! Tenho interesse no imóvel ${imovel.nome}. Podem me ajudar?`);
+  document.querySelectorAll('.js-whatsapp').forEach(el => {
+    el.href = `https://wa.me/${dados.config.whatsapp}?text=${wpMsg}`;
+  });
+
+  // Galeria
+  const galeria = imovel.imagemGaleria || [imovel.imagem];
+  document.getElementById('galeria-grid').innerHTML = galeria.map(src => `
+    <img src="${resolveMediaPath(src)}" alt="${imovel.nome}" loading="lazy" onclick="window.open('${resolveMediaPath(src)}','_blank')">
+  `).join('');
+
+  // Diferenciais
+  const difEl = document.getElementById('dif-lista');
+  const icons = ['🏊','🏋️','⚽','🧸','🎉','🎮','🍖','🛡️','🌳','🚗','☀️','🔒'];
+  difEl.innerHTML = (imovel.diferenciais || []).map((d, i) => `
+    <div class="diferencial-item">${icons[i % icons.length]} ${d}</div>
+  `).join('');
+
+  // Plantas
+  const plantas = imovel.plantas || [];
+  const tabsEl = document.getElementById('plantas-tabs');
+  const infoEl = document.getElementById('planta-info');
+
+  if (plantas.length > 0) {
+    tabsEl.innerHTML = plantas.map((p, i) => `
+      <button class="planta-tab ${i===0?'active':''}" onclick="mostrarPlanta(${i})">${p.nome}</button>
+    `).join('');
+
+    window.plantasData = plantas;
+    window.mostrarPlanta = (i) => {
+      document.querySelectorAll('.planta-tab').forEach((t,j) => t.classList.toggle('active', i===j));
+      const p = plantas[i];
+      infoEl.innerHTML = `
+        <h4 style="color:var(--azul-escuro);margin-bottom:12px;">${p.nome}</h4>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;">
+          <div>
+            <span style="font-size:12px;color:var(--cinza-texto);display:block;">Metragem</span>
+            <strong style="font-size:18px;color:var(--azul-escuro)">${p.descricao}</strong>
+          </div>
+          ${p.unidades ? `<div><span style="font-size:12px;color:var(--cinza-texto);display:block;">Unidades</span><strong style="font-size:18px;color:var(--azul-escuro)">${p.unidades}</strong></div>` : ''}
+        </div>
+      `;
+    };
+    window.mostrarPlanta(0);
+  }
+
+  // Mapa
+  document.getElementById('localizacao-texto').textContent = imovel.localizacao;
+  document.getElementById('maps-link').href = imovel.mapsLink;
+  document.getElementById('mapa-frame').src = `https://maps.google.com/maps?q=${encodeURIComponent(imovel.localizacao)}&output=embed&z=15`;
+
+  // Outros imóveis (exclui o atual)
+  const outros = dados.imoveis.filter(i => i.id !== id).slice(0, 3);
+  document.getElementById('outros-imoveis').innerHTML = outros.map(i => criarCardImovel(i)).join('');
+
+  setTimeout(initAnimations, 100);
+});
+</script>
+</body>
+</html>
