@@ -34,6 +34,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: celli_cruz_app1
+    ports:
+      - "8001:8000"
     environment:
       - NODE_ENV=production
       - PORT=8000
@@ -71,6 +73,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: celli_cruz_app2
+    ports:
+      - "8002:8000"
     environment:
       - NODE_ENV=production
       - PORT=8000

@@ -6,7 +6,7 @@ Guia para rodar a aplicação Celli Cruz com Docker Compose.
 
 - Docker Desktop 4.0+
 - 2GB de espaço em disco
-- Portas livres: 80 (nginx)
+- Portas livres: 80 (nginx), 8001 (app1), 8002 (app2)
 
 ## Início Rápido
 
@@ -30,9 +30,15 @@ data_sync       Up
 ```
 
 ### 3. Acesse
+
+**Via Load Balancer Nginx (Recomendado):**
 - Site: http://localhost
 - Admin: http://localhost/pages/admin.html
 - API: http://localhost/api/*
+
+**Direto em cada App (Debug):**
+- App1: http://localhost:8001
+- App2: http://localhost:8002
 
 ## Como Funciona
 
