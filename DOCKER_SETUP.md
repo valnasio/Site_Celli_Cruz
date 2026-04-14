@@ -1,162 +1,172 @@
-# 🐳 Celli Cruz - Docker Compose Setup
+# Celli Cruz - Docker Setup
 
-Guia completo para rodar a aplicação Celli Cruz com Docker Compose em alta disponibilidade.
+Guia para rodar a aplicação Celli Cruz com Docker Compose.
 
-## 📋 Requisitos
+## Requisitos
 
 - Docker Desktop 4.0+
-- Docker Compose 1.29+
-- ~1.5GB de espaço em disco
-- Portas 80, 443 (nginx), 8000 (apps)
+- 2GB de espaço em disco
+- Portas livres: 80 (nginx)
 
-## 🚀 Iniciar Aplicação
+## Início Rápido
 
-### Opção 1: Iniciar com Build
+### 1. Build e Start
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
-### Opção 2: Iniciar com Imagem Existente
+### 2. AguardeHealthCheck (30-60s)
 ```bash
-docker-compose up -d
+docker compose ps
 ```
 
-### Verificar Status
+Você verá:
+```
+SERVICE         STATUS
+nginx           Up (healthy)
+app1            Up (healthy)
+app2            Up (healthy)
+data_sync       Up
+```
+
+### 3. Acesse
+- Site: http://localhost
+- Admin: http://localhost/pages/admin.html
+- API: http://localhost/api/*
+
+## Como Funciona
+
+```
+Cliente HTTP (porta 80)
+        ↓
+   Nginx Server
+   (load balance)
+        ↓
+    ┌───┴───┐
+    ↓       ↓
+   app1    app2
+  (node)   (node)
+    ↓       ↓
+    └───┬───┘
+        ↓
+  Dados Compartilhados
+  (volume)
+```
+
+**2 replicas**: Se uma cair, a outra continua servindo.
+
+## Comandos
+
+### Ver Logs
 ```bash
-docker-compose ps
+# Logs ao vivo
+docker compose logs -f
+
+# Apenas um serviço
+docker compose logs -f app1
 ```
 
-Saída esperada:
-```
-CONTAINER ID   IMAGE              STATUS
-xxx     celli_cruz_nginx       Up x minutes (healthy)
-yyy     celli_cruz_app1        Up x minutes (healthy)
-zzz     celli_cruz_app2        Up x minutes (healthy)
-```
-
-## 🌐 Acessar Aplicação
-
-- **Site Principal**: http://localhost
-- **Admin Panel**: http://localhost/pages/admin.html
-- **API**: http://localhost/api/*
-- **Health Check**: http://localhost/health
-
-## 📊 Arquitetura
-
-```
-┌─────────────────────────────────────────┐
-│         DNS / Load Balancer (80, 443)   │
-│              (Nginx Alpine)             │
-└──────────────┬──────────────────────────┘
-               │
-        ┌──────┴──────┐
-        ↓             ↓
-   ┌─────────┐   ┌─────────┐
-   │ celli   │   │ celli   │
-   │  app1   │   │  app2   │
-   │ :8000   │   │ :8000   │
-   └────┬────┘   └────┬────┘
-        │ volume      │ volume
-        └──────┬──────┘
-               ↓
-        ┌─────────────┐
-        │ Shared Data │
-        │  (imoveis   │
-        │   uploads)  │
-        └─────────────┘
-```
-
-## 🔧 Comandos Úteis
-
-### Logs em Tempo Real
+### Parar
 ```bash
-# Todos os serviços
-docker-compose logs -f
+# Parar apenas
+docker compose stop
 
-# Apenas app1
-docker-compose logs -f app1
-
-# Apenas nginx
-docker-compose logs -f nginx
+# Parar e remover
+docker compose down
 ```
 
-### Testar Load Balancer
+### Reiniciar
 ```bash
-# Múltiplas requisições para verificar distribuição
-for i in {1..10}; do
-  curl -s http://localhost/health | head -c 20
-  echo ""
-done
+docker compose restart
+
+# Só um serviço
+docker compose restart app1
 ```
 
-### Parar Aplicação
+### Testar
 ```bash
-# Parar todos os containers
-docker-compose stop
-
-# Parar e remover containers
-docker-compose down
-
-# Parar e remover volumes (CUIDADO: perderá dados)
-docker-compose down -v
+curl http://localhost/health
 ```
 
-### Reiniciar Serviço
-```bash
-# Reiniciar uma réplica
-docker-compose restart app1
+Resposta esperada: `healthy`
 
-# Força rebuild
-docker-compose up --build -d
+## Troubleshooting
+
+### "Connection refused"
+- Aguarde 30-60 segundos (primeira execução é mais lenta)
+- Verifique: `docker compose ps`
+- Logs: `docker compose logs nginx`
+
+### Porta 80 em uso
+Edite `docker-compose.yml`:
+```yaml
+nginx:
+  ports:
+    - "8080:80"  # Use 8080
 ```
 
-## 📁 Volumes (Dados Persistentes)
+Depois: `docker compose restart`
 
-Os dados são armazenados em volumes Docker:
-
-- **`app_data`**: `/app/data/imoveis.json` (base de dados)
-- **`app_uploads`**: `/app/assets/uploads/` (fotos e imagens)
-
-Para acessar os dados:
+### Dados não salvam
+Verifique volumes:
 ```bash
-# Listar volumes
 docker volume ls
+docker volume inspect <nome>
+```
 
-# Inspecionar volume
+## Logs e Monitoramento
+
+### Uso de Recursos
+```bash
+docker stats
+```
+
+### Health Status
+```bash
+docker compose ps --format "table {{.Service}}\t{{.Status}}"
+```
+
+## Escalabilidade
+
+Adicionar 3ª réplica em `docker-compose.yml`:
+
+1. Copie seção `app2`
+2. Renomeie para `app3`
+3. Mude `INSTANCE_NAME=app3`
+4. Execute: `docker compose up -d`
+
+Nginx detectará automaticamente.
+
+## Dados
+
+Volumes:
+- `app_data`: `/data/imoveis.json`
+- `app_uploads`: `/assets/uploads/`
+
+Acesso:
+```bash
 docker volume inspect cellicruz_app_data
 ```
 
-## 🔄 High Availability
+## Limpeza
 
-### Como Funciona
-1. **Nginx** atua como load balancer na porta 80
-2. **Least Connections**: Distribui requisições entre app1 e app2
-3. **Health Checks**: Remove apps que falharem
-4. **Volumes Compartilhados**: Ambos os apps acessam dados iguais
-5. **Auto-restart**: Containers reiniciam se caírem
+```bash
+# Para tudo
+docker compose down
 
-### Cenários de Falha
+# Remove volumes também (⚠️ deleta dados)
+docker compose down -v
 
-**Se app1 cai:**
-- Nginx automaticamente roteia requisições para app2
-- app1 reinicia automaticamente
-- Site continua 100% disponível
+# Remove tudo e re-build
+docker compose down -v && docker compose up --build -d
+```
 
-**Se app2 cai:**
-- Nginx automaticamente roteia requisições para app1
-- app2 reinicia automaticamente
-- Site continua 100% disponível
+## Notas
 
-**Se nginx cai:**
-- Execute `docker-compose restart nginx`
-- Ambos os apps continuam rodando
-
-## 🔒 Segurança
-
-### Proteção Incluída
-- ✅ Aplicações rodam como non-root (nodejs user)
-- ✅ Limites de CPU e Memória por container
-- ✅ Health checks automáticos
+- Health checks: 30s interval, 3 retries
+- Auto-restart: ativado
+- Limites: 512MB RAM, 0.5 CPU por app
+- Gzip compression: ativado
 - ✅ Compressão Gzip habilitada
 - ✅ Client body size limitado
 
