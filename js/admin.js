@@ -82,29 +82,44 @@ function readFileAsDataUrl(file) {
 }
 
 async function uploadImageFile(file) {
-  const endpoint = getAdminApiPath('upload');
+  const endpoint = '/api/upload';
   const formData = new FormData();
   formData.append('file', file);
 
   try {
+    console.log('🔄 Iniciando upload de:', file.name, '(', (file.size / 1024).toFixed(2), 'KB)');
+    console.log('📍 Acessando:', window.location.origin + endpoint);
+    
     const res = await fetch(endpoint, {
       method: 'POST',
       body: formData
     });
 
+    console.log('📡 Resposta do servidor:', res.status, res.statusText);
+
     if (!res.ok) {
-      throw new Error('Upload indisponível');
+      const errorBody = await res.text();
+      console.error('❌ Erro no upload:', errorBody);
+      
+      // Se não estiver usando localhost:8000, informar
+      const hint = window.location.port !== '8000' ? 
+        '\n\n💡 Dica: Certifique-se de acessar http://localhost:8000/pages/admin.html (não 5500)' : '';
+      
+      throw new Error(`HTTP ${res.status}: ${res.statusText}${hint}`);
     }
 
     const json = await res.json();
+    console.log('✅ Upload bem-sucedido:', json);
+    
     if (json.ok && json.path) {
       return json.path;
     }
 
-    throw new Error(json.error || 'Upload retornou erro');
+    throw new Error(json.error || 'Upload retornou erro desconhecido');
   } catch (error) {
-    console.warn('Upload via backend não disponível, usando URL local temporária:', error);
-    return await readFileAsDataUrl(file);
+    console.error('❌ Falha ao fazer upload:', error.message);
+    showAdminToast(`<i class="fas fa-circle-exclamation"></i> Upload falhou: ${error.message}`, 'error');
+    throw error;
   }
 }
 
@@ -144,8 +159,7 @@ function initImageSourceToggles() {
   const forms = [document.getElementById('form-imovel'), document.getElementById('form-carousel-item')];
   forms.forEach(form => {
     if (!form) return;
-    const fieldNames = form.id === 'form-carousel-item' ? ['image', 'imageMobile'] : ['imagem'];
-    fieldNames.forEach(fieldName => {
+    ['imagem', 'image', 'imageMobile'].forEach(fieldName => {
       form.querySelectorAll(`[name="${fieldName}Source"]`).forEach(radio => {
         radio.addEventListener('change', () => updateImageSourceFields(form, fieldName));
       });
@@ -193,7 +207,7 @@ function renderTable(filter = '') {
       <td>
         <div class="action-btns">
           <button class="btn-icon btn-edit" title="Editar" onclick="openEdit(${imovel.id})"><i class="fas fa-pen"></i></button>
-          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDelete(${imovel.id})">🗑️</button>
+          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDelete(${imovel.id})"><i class="fas fa-trash-alt"></i></button>
         </div>
       </td>
     </tr>
@@ -227,7 +241,7 @@ function renderCarouselTable(filter = '') {
       <td>
         <div class="action-btns">
           <button class="btn-icon btn-edit" title="Editar" onclick="openCarouselModal(${item.id})"><i class="fas fa-pen"></i></button>
-          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDeleteCarouselItem(${item.id})">🗑️</button>
+          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDeleteCarouselItem(${item.id})"><i class="fas fa-trash-alt"></i></button>
         </div>
       </td>
     </tr>
@@ -252,7 +266,7 @@ function renderAdminUsersTable() {
       <td>
         <div class="action-btns">
           <button class="btn-icon btn-edit" title="Editar" onclick="openUserModal(${user.id})"><i class="fas fa-pen"></i></button>
-          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDeleteUser(${user.id})">🗑️</button>
+          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDeleteUser(${user.id})"><i class="fas fa-trash-alt"></i></button>
         </div>
       </td>
     </tr>
@@ -309,9 +323,20 @@ function openModal(titulo, imovel = null) {
     f.querySelector('[name="mapsLink"]').value = imovel.mapsLink || '';
     f.querySelector('[name="destaque"]').checked = imovel.destaque || false;
     f.querySelector('[name="diferenciais"]').value = (imovel.diferenciais || []).join(', ');
+    
+    // Carregar cômodos
+    const comodosList = document.getElementById('comodos-list');
+    if (comodosList) {
+      comodosList.innerHTML = '';
+      (imovel.comodos || []).forEach(comodo => {
+        renderComodoForm(comodo);
+      });
+    }
   } else {
     f.reset();
     updateImageSourceFields(f, 'imagem');
+    const comodosList = document.getElementById('comodos-list');
+    if (comodosList) comodosList.innerHTML = '';
   }
 
   updatePreview();
@@ -345,15 +370,19 @@ function openCarouselModal(id = null) {
     if (item) {
       form.querySelector('[name="title"]').value = item.title || '';
       form.querySelector('[name="subtitle"]').value = item.subtitle || '';
-      const imageSource = item.imageSource || (/^(https?:)?\/\//i.test(item.image) ? 'url' : 'upload');
+      
+      // Desktop image
+      const imageDesktopOrImage = item.imageDesktop || item.image;
+      const imageSource = item.imageSource || (/^(https?:)?\/\//i.test(imageDesktopOrImage) ? 'url' : 'upload');
       const imageSourceInput = form.querySelector(`[name="imageSource"][value="${imageSource}"]`);
       if (imageSourceInput) imageSourceInput.checked = true;
-      form.querySelector('[name="imageUrl"]').value = imageSource === 'url' ? (item.image || '') : '';
-      form.querySelector('[name="imageExisting"]').value = item.image || '';
+      form.querySelector('[name="imageUrl"]').value = imageSource === 'url' ? (imageDesktopOrImage || '') : '';
+      form.querySelector('[name="imageExisting"]').value = imageDesktopOrImage || '';
       form.querySelector('[name="imageFile"]').value = '';
       updateImageSourceFields(form, 'image');
       
-      const imageMobileSource = item.imageMobileSource || (item.imageMobile && /^(https?:)?\/\//i.test(item.imageMobile) ? 'url' : 'upload');
+      // Mobile image
+      const imageMobileSource = item.imageMobileSource || (/^(https?:)?\/\//i.test(item.imageMobile) ? 'url' : 'upload');
       const imageMobileSourceInput = form.querySelector(`[name="imageMobileSource"][value="${imageMobileSource}"]`);
       if (imageMobileSourceInput) imageMobileSourceInput.checked = true;
       form.querySelector('[name="imageMobileUrl"]').value = imageMobileSource === 'url' ? (item.imageMobile || '') : '';
@@ -411,47 +440,38 @@ async function saveCarouselItem() {
   if (!form) return;
 
   const title = form.querySelector('[name="title"]').value.trim();
-  if (!title) { showAdminToast('⚠️ Título é obrigatório.', 'error'); return; }
+  if (!title) { showAdminToast('<i class="fas fa-exclamation-triangle"></i> Título é obrigatório.', 'error'); return; }
 
-  let imageResult;
+  let imageDesktopResult;
   try {
-    imageResult = await resolveImageFieldValue(form, 'image');
+    imageDesktopResult = await resolveImageFieldValue(form, 'image');
   } catch (error) {
     showAdminToast(error.message, 'error');
     return;
   }
 
-  let imageMobileResult;
+  let imageMobileResult = { value: '', source: 'url' };
   try {
+    const mobileImageInput = form.querySelector('[name="imageMobileFile"]');
+    const mobileImageUrl = form.querySelector('[name="imageMobileUrl"]');
     const imageMobileSource = form.querySelector('[name="imageMobileSource"]:checked')?.value || 'url';
-    const imageMobileUrl = form.querySelector('[name="imageMobileUrl"]')?.value.trim() || '';
-    const imageMobileFile = form.querySelector('[name="imageMobileFile"]');
-    const imageMobileExisting = form.querySelector('[name="imageMobileExisting"]')?.value.trim() || '';
-
-    if (imageMobileSource === 'url') {
-      imageMobileResult = imageMobileUrl ? { value: imageMobileUrl, source: 'url' } : (imageMobileExisting ? { value: imageMobileExisting, source: 'url' } : { value: '', source: 'url' });
-    } else {
-      const file = imageMobileFile?.files?.[0];
-      if (file) {
-        const path = await uploadImageFile(file);
-        imageMobileResult = { value: path, source: 'upload' };
-      } else if (imageMobileExisting) {
-        imageMobileResult = { value: imageMobileExisting, source: 'upload' };
-      } else {
-        imageMobileResult = { value: '', source: 'upload' };
-      }
+    
+    if ((imageMobileSource === 'upload' && mobileImageInput?.files?.length) || 
+        (imageMobileSource === 'url' && mobileImageUrl?.value?.trim())) {
+      imageMobileResult = await resolveImageFieldValue(form, 'imageMobile');
     }
   } catch (error) {
-    imageMobileResult = { value: '', source: 'url' };
+    // Mobile image é opcional, então não mostra erro
   }
 
   const item = {
     id: carouselEditingId || (Math.max(0, ...(appData.carousel || []).map(c => c.id)) + 1),
     title,
     subtitle: form.querySelector('[name="subtitle"]').value.trim(),
-    image: imageResult.value,
-    imageSource: imageResult.source,
-    imageMobile: imageMobileResult.value,
+    imageDesktop: imageDesktopResult.value,
+    image: imageDesktopResult.value,
+    imageSource: imageDesktopResult.source,
+    imageMobile: imageMobileResult.value || undefined,
     imageMobileSource: imageMobileResult.source,
     link: form.querySelector('[name="link"]').value.trim()
   };
@@ -469,7 +489,7 @@ async function saveCarouselItem() {
   saveData();
   renderCarouselTable();
   closeCarouselModal();
-  showAdminToast(carouselEditingId ? '✅ Slide atualizado com sucesso!' : '✅ Slide criado com sucesso!');
+  showAdminToast(carouselEditingId ? '<i class="fas fa-check"></i> Slide atualizado com sucesso!' : '<i class="fas fa-check"></i> Slide criado com sucesso!');
 }
 
 async function saveUser() {
@@ -482,23 +502,23 @@ async function saveUser() {
   const passwordConfirm = form.querySelector('[name="passwordConfirm"]').value;
 
   if (!name || !username) {
-    showAdminToast('⚠️ Nome e usuário são obrigatórios.', 'error');
+    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Nome e usuário são obrigatórios.', 'error');
     return;
   }
 
   if (!userEditingId && !password) {
-    showAdminToast('⚠️ Informe uma senha para o novo usuário.', 'error');
+    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Informe uma senha para o novo usuário.', 'error');
     return;
   }
 
   if (password && password !== passwordConfirm) {
-    showAdminToast('⚠️ Senhas não conferem.', 'error');
+    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Senhas não conferem.', 'error');
     return;
   }
 
   const existing = appData.adminUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.id !== userEditingId);
   if (existing) {
-    showAdminToast('⚠️ Este usuário já existe.', 'error');
+    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Este usuário já existe.', 'error');
     return;
   }
 
@@ -534,7 +554,7 @@ async function saveUser() {
   saveData();
   renderAdminUsersTable();
   closeUserModal();
-  showAdminToast(userEditingId ? '✅ Usuário atualizado com sucesso!' : '✅ Usuário criado com sucesso!');
+  showAdminToast(userEditingId ? '<i class="fas fa-check"></i> Usuário atualizado com sucesso!' : '<i class="fas fa-check"></i> Usuário criado com sucesso!');
 }
 
 function confirmDeleteUser(id) {
@@ -545,7 +565,7 @@ function confirmDeleteUser(id) {
     appData.adminUsers = appData.adminUsers.filter(u => u.id !== id);
     saveData();
     renderAdminUsersTable();
-    showAdminToast('🗑️ Usuário excluído com sucesso.');
+    showAdminToast('<i class="fas fa-trash-alt"></i> Usuário excluído com sucesso.');
   }
 }
 
@@ -557,7 +577,7 @@ function confirmDeleteCarouselItem(id) {
     appData.carousel = appData.carousel.filter(c => c.id !== id);
     saveData();
     renderCarouselTable();
-    showAdminToast('🗑️ Slide excluído com sucesso.');
+    showAdminToast('<i class="fas fa-trash-alt"></i> Slide excluído com sucesso.');
   }
 }
 
@@ -661,7 +681,7 @@ async function salvarImovel() {
 
   // Validação básica
   const nome = f.querySelector('[name="nome"]').value.trim();
-  if (!nome) { showAdminToast('⚠️ O nome é obrigatório.', 'error'); return; }
+  if (!nome) { showAdminToast('<i class="fas fa-exclamation-triangle"></i> O nome é obrigatório.', 'error'); return; }
 
   let imageResult;
   try {
@@ -688,7 +708,8 @@ async function salvarImovel() {
     mapsLink: f.querySelector('[name="mapsLink"]').value.trim(),
     destaque: f.querySelector('[name="destaque"]').checked,
     diferenciais: f.querySelector('[name="diferenciais"]').value.split(',').map(s => s.trim()).filter(Boolean),
-    plantas: []
+    plantas: [],
+    comodos: coletarComodos()
   };
 
   if (editingId) {
@@ -706,7 +727,7 @@ async function salvarImovel() {
   closeModal();
   renderDashboard();
   renderTable();
-  showAdminToast(editingId ? '✅ Imóvel atualizado com sucesso!' : '✅ Imóvel criado com sucesso!');
+  showAdminToast(editingId ? '<i class="fas fa-check"></i> Imóvel atualizado com sucesso!' : '<i class="fas fa-check"></i> Imóvel criado com sucesso!');
 }
 
 // ============================================================
@@ -722,7 +743,7 @@ function confirmDelete(id) {
     saveData();
     renderDashboard();
     renderTable();
-    showAdminToast('🗑️ Imóvel excluído com sucesso.');
+    showAdminToast('<i class="fas fa-trash-alt"></i> Imóvel excluído com sucesso.');
   }
 }
 
@@ -764,7 +785,7 @@ async function saveData() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(appData)
     });
-    if (res.ok) return;
+    if (res.ok) return true;
   } catch (e) {
     // API não disponível - modo offline
   }
@@ -772,6 +793,64 @@ async function saveData() {
   // Fallback: mostra JSON para copiar
   console.log('<i class="fas fa-folder"></i> Dados atualizados (copie para imoveis.json):');
   console.log(JSON.stringify(appData, null, 2));
+  return false;
+}
+
+// ============================================================
+// SALVAR PARA SERVIDOR
+// ============================================================
+
+async function salvarParaServidor() {
+  const btn = event.target;
+  const textoOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+
+  try {
+    appData.carousel = appData.carousel || [];
+    const apiPath = '/api/save';
+    
+    console.log('Enviando dados para o servidor...', appData);
+    
+    const res = await fetch(apiPath, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(appData)
+    });
+
+    console.log('Resposta do servidor:', res.status, res.statusText);
+    
+    const responseText = await res.text();
+    console.log('Corpo da resposta:', responseText);
+    
+    let json = {};
+    if (responseText) {
+      try {
+        json = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Erro ao fazer parsing JSON:', parseError);
+      }
+    }
+
+    if (res.ok && json.ok) {
+      showAdminToast('<i class="fas fa-check"></i> Alterações salvas com sucesso!');
+      btn.innerHTML = '<i class="fas fa-check"></i> Salvo com sucesso!';
+      setTimeout(() => {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+      }, 3000);
+      return;
+    }
+    
+    // Erro com mensagem do servidor
+    const errorMsg = json.error || res.statusText || 'Erro ao salvar';
+    throw new Error(errorMsg);
+  } catch (e) {
+    console.error('Erro completo:', e);
+    showAdminToast('<i class="fas fa-circle-exclamation"></i> Erro ao salvar no servidor: ' + e.message, 'error');
+    btn.innerHTML = textoOriginal;
+    btn.disabled = false;
+  }
 }
 
 // ============================================================
@@ -798,10 +877,53 @@ function salvarConfig() {
   });
 
   saveData();
-  showAdminToast('✅ Configurações salvas!');
+  showAdminToast('<i class="fas fa-check"></i> Configurações salvas!');
 }
 
 // ============================================================
+// EXPORTAR JSON
+// ============================================================
+
+function exportarJSON() {
+  const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'imoveis.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showAdminToast('<i class="fas fa-download"></i> JSON exportado! Substitua o arquivo data/imoveis.json');
+}
+
+// ============================================================
+// IMPORTAR JSON
+// ============================================================
+
+function importarJSON() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        appData = data;
+        renderDashboard();
+        renderTable();
+        loadConfigForm();
+        showAdminToast('<i class="fas fa-check"></i> JSON importado com sucesso!');
+      } catch {
+        showAdminToast('<i class="fas fa-circle-exclamation"></i> Arquivo JSON inválido.', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 // ============================================================
 // NAVEGAÇÃO SIDEBAR
 // ============================================================
@@ -821,6 +943,134 @@ function showSection(sectionId) {
 // ============================================================
 // TOAST ADMIN
 // ============================================================
+// GERENCIAR CÔMODOS (ROOM PHOTOS)
+// ============================================================
+
+let comodoEditando = {};
+
+function adicionarComodo() {
+  comodoEditando = { id: Date.now(), nome: '', fotos: [] };
+  renderComodoForm(comodoEditando);
+}
+
+function renderComodoForm(comodo) {
+  const form = document.getElementById('form-imovel');
+  if (!form) return;
+  
+  let lista = form.querySelector('#comodos-list');
+  const exists = lista.querySelector(`[data-comodo-id="${comodo.id}"]`);
+  
+  if (!exists) {
+    const div = document.createElement('div');
+    div.setAttribute('data-comodo-id', comodo.id);
+    div.style.cssText = 'background: white; border: 1px solid #e5e8ec; border-radius: 6px; padding: 12px; margin-bottom: 12px;';
+    
+    div.innerHTML = `
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div style="flex: 1;">
+          <input type="text" class="comodo-nome" placeholder="Ex: Sala de Estar" value="${comodo.nome}" style="width: 100%; padding: 8px; border: 1px solid #d0d0d0; border-radius: 4px; margin-bottom: 8px;" required>
+          <div class="comodo-fotos" style="margin-bottom: 8px;">
+            <!-- Fotos serão listadas aqui -->
+          </div>
+          <button type="button" class="btn btn-outline" style="font-size: 12px; padding: 6px 10px;" onclick="adicionarFotoComodo(${comodo.id})">
+            <i class="fas fa-plus"></i> Adicionar Foto
+          </button>
+        </div>
+        <button type="button" class="btn btn-sm" style="background: #fee; color: #c00; border: 1px solid #fcc; padding: 6px 10px;" onclick="removerComodo(${comodo.id})">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+      </div>
+    `;
+    lista.appendChild(div);
+  }
+  
+  renderFotosComodo(comodo.id, comodo.fotos || []);
+}
+
+function renderFotosComodo(comodoId, fotos) {
+  const fotosDiv = document.querySelector(`[data-comodo-id="${comodoId}"] .comodo-fotos`);
+  if (!fotosDiv) return;
+  
+  fotosDiv.innerHTML = fotos.map((foto, idx) => {
+    const caminhoResolvido = resolveAdminMediaPath(foto);
+    return `
+    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; padding: 6px; background: #f5f5f5; border-radius: 4px;">
+      <img src="${caminhoResolvido}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 3px;" alt="Foto do cômodo"
+        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ccc%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2212%22 fill=%22%23999%22%3EErro ao carregar%3C/text%3E%3C/svg%3E';">
+      <span style="flex: 1; font-size: 12px; color: #666; word-break: break-all;" title="${foto}">${foto.substring(0, 30)}...</span>
+      <button type="button" class="btn btn-sm" style="background: #fee; color: #c00; border: none; padding: 4px 8px; font-size: 12px;" onclick="removerFotoComodo(${comodoId}, ${idx})">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  `}).join('');
+}
+}
+
+function adicionarFotoComodo(comodoId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    try {
+      const path = await uploadImageFile(file);
+      
+      const comodosDiv = document.querySelector(`[data-comodo-id="${comodoId}"]`);
+      if (!comodosDiv) return;
+      
+      const nomeInput = comodosDiv.querySelector('.comodo-nome');
+      const nome = nomeInput.value.trim() || 'Cômodo';
+      
+      // Armazena temporariamente no comodoEditando
+      if (!comodoEditando.fotos) comodoEditando.fotos = [];
+      if (comodoEditando.id === comodoId) {
+        comodoEditando.fotos.push(path);
+        renderFotosComodo(comodoId, comodoEditando.fotos);
+        showAdminToast(`<i class="fas fa-image"></i> Foto de ${nome} adicionada!`);
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar foto:', error);
+      // Toast já foi exibido no uploadImageFile
+    }
+  };
+  input.click();
+}
+
+function removerFotoComodo(comodoId, fotoIdx) {
+  if (comodoEditando.id === comodoId && comodoEditando.fotos) {
+    comodoEditando.fotos.splice(fotoIdx, 1);
+    renderFotosComodo(comodoId, comodoEditando.fotos);
+  }
+}
+
+function removerComodo(comodoId) {
+  const div = document.querySelector(`[data-comodo-id="${comodoId}"]`);
+  if (div) div.remove();
+  if (comodoEditando.id === comodoId) {
+    comodoEditando = {};
+  }
+}
+
+function coletarComodos() {
+  const lista = document.querySelectorAll('#comodos-list > div[data-comodo-id]');
+  const comodos = [];
+  lista.forEach(div => {
+    const comodoId = div.getAttribute('data-comodo-id');
+    const nome = div.querySelector('.comodo-nome').value.trim();
+    const fotos = [];
+    div.querySelectorAll('.comodo-fotos img').forEach(img => {
+      fotos.push(img.src);
+    });
+    if (nome || fotos.length > 0) {
+      comodos.push({ id: parseInt(comodoId), nome: nome || 'Cômodo', fotos });
+    }
+  });
+  return comodos;
+}
+
+// ============================================================
 
 function showAdminToast(msg, type = 'success') {
   let toast = document.getElementById('admin-toast');
@@ -831,7 +1081,9 @@ function showAdminToast(msg, type = 'success') {
     document.body.appendChild(toast);
   }
   toast.className = `toast ${type}`;
-  toast.textContent = msg;
+  // Use innerHTML para renderizar ícones, mas limpar primeiro
+  const msgWithoutHTML = msg.replace(/<[^>]*>/g, '');
+  toast.innerHTML = msg;
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 4000);
 }

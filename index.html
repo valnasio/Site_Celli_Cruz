@@ -24,7 +24,7 @@
       <a href="pages/imoveis.html" class="nav-link">Imóveis</a>
       <a href="#sobre" class="nav-link">Sobre</a>
       <a href="#contato" class="nav-link">Contato</a>
-      <a href="https://wa.me/557599999999" class="nav-cta js-whatsapp" target="_blank"><i class="fas fa-comments"></i> WhatsApp</a>
+      <a href="#" class="nav-cta js-whatsapp" onclick="openWhatsAppModal(); return false;"><i class="fas fa-comments"></i> WhatsApp</a>
     </nav>
     <button class="menu-toggle" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -40,29 +40,19 @@
   <div class="container hero-inner">
     <div class="hero-content">
       <p class="section-label">Assessoria Imobiliária em Feira de Santana</p>
-      <h1 class="hero-title">
-        O lar que<br>acompanha<br><span>o seu ritmo.</span>
-      </h1>
+      
+      <div class="hero-title-wrapper">
+        <div class="hero-title-decoration"></div>
+        <h1 class="hero-title">
+          O lar que<br>acompanha<br><span>o seu ritmo.</span>
+        </h1>
+        <div class="hero-title-decoration"></div>
+      </div>
+      
       <p class="hero-sub">Encontre os melhores lançamentos e imóveis em Feira de Santana com quem entende do mercado local.</p>
       <div style="display: flex; gap: 14px; flex-wrap: wrap;">
-        <a href="pages/imoveis.html" class="btn btn-primary btn-gradient">Ver todos os imóveis <i class="fas fa-arrow-right"></i></a>
+        <a href="pages/imoveis.html" class="btn btn-primary">Ver todos os imóveis <i class="fas fa-arrow-right"></i></a>
         <a href="#contato" class="btn btn-outline-white">Falar com consultor</a>
-      </div>
-
-               <!--   se mexer da ruim -->
-    <div class="hero-stats">
-        <div>
-          <div class="stat-num"></div>
-          <div class="stat-label"></div>
-        </div>
-        <div>
-          <div class="stat-num"></div>
-          <div class="stat-label"></div>
-        </div>
-        <div>
-          <div class="stat-num"> </div>
-          <div class="stat-label">      </div>
-        </div>
       </div>
     </div>
 
@@ -203,12 +193,15 @@
         <h3>Central de Vendas</h3>
         <div class="cta-contacts">
           <div class="contact-item">
-            <div class="contact-icon" style="background: #0a0a0a48; color: var(--azul-escuro);"><i class="fas fa-map-pin"></i></div>
+            <div class="contact-icon" style="background: #f0f2f5; color: var(--azul-escuro);"><i class="fas fa-map-pin"></i></div>
             <span class="js-endereco">Rua Newton Vieira Rique, 18, São João, Feira de Santana - BA</span>
           </div>
-
           <div class="contact-item">
-            <div class="contact-icon" style="background: #0a0a0a48; color: var(--azul-escuro)"><i class="fas fa-clock"></i></div>
+            <div class="contact-icon" style="background: #f0f2f5; color: var(--azul-escuro);"><i class="fas fa-phone"></i></div>
+            <a href="tel:xxxxxx" class="js-telefone">(75) 0000-00</a>
+          </div>
+          <div class="contact-item">
+            <div class="contact-icon" style="background: #f0f2f5; color: var(--azul-escuro);"><i class="fas fa-clock"></i></div>
             <span>Seg a Sáb: 8h às 18h</span>
           </div>
         </div>
@@ -243,7 +236,7 @@
           <div class="contact-icon"><i class="fas fa-phone"></i></div>
           <div>
             <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-bottom:2px;">Telefone</div>
-            <a href="tel:7541414777" style="color:white; font-weight:600;" class="js-telefone">(75) 0000-0000</a>
+            <a href="tel:75999371939" style="color:white; font-weight:600;" class="js-telefone">(75) 99937-1939</a>
           </div>
         </div>
         <div class="contact-item">
@@ -316,7 +309,7 @@
       </div>
       <div class="footer-col">
         <h4>Contato</h4>
-        <a href="tel:7541414777" class="footer-link js-telefone">(75) 0000-0000</a>
+        <a href="tel:75999371939" class="footer-link js-telefone">(75) 99937-1939</a>
         <a href="mailto:contato@cellicruz.com.br" class="footer-link js-email">contato@cellicruz.com.br</a>
         <span class="footer-link js-endereco" style="cursor: default;">Rua Newton Vieira Rique, 18, São João, Feira de Santana - BA</span>
         <span class="footer-link" style="cursor: default;">Seg a Sáb: 8h às 18h</span>
@@ -336,7 +329,7 @@
   <div class="whatsapp-modal">
     <div class="whatsapp-modal-header">
       <h3>Escolha o departamento</h3>
-      <button class="whatsapp-modal-close" onclick="closeWhatsAppModal()">✕</button>
+      <button class="whatsapp-modal-close" onclick="closeWhatsAppModal()">&times;</button>
     </div>
     <div class="whatsapp-modal-body">
       <a href="#" class="whatsapp-option" id="whatsapp-vendas" onclick="redirectWhatsApp('vendas'); return false;">

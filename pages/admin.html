@@ -84,6 +84,9 @@
       <a href="#" class="sidebar-link" data-section="carousel" onclick="showSection('carousel'); return false;">
         <i class="fas fa-image"></i> <span>Carrossel</span>
       </a>
+      <a href="#" class="sidebar-link" data-section="dados" onclick="showSection('dados'); return false;">
+        <i class="fas fa-database"></i> <span>Importar / Exportar</span>
+      </a>
       <a href="#" class="sidebar-link" data-section="ajuda" onclick="showSection('ajuda'); return false;">
         <i class="fas fa-question-circle"></i> <span>Ajuda & Documentação</span>
       </a>
@@ -136,21 +139,21 @@
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon icon-yellow">⭐</div>
+            <div class="stat-icon icon-yellow"><i class="fas fa-star"></i></div>
             <div class="stat-info">
               <p>Em Destaque</p>
               <span id="stat-destaques">—</span>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon icon-green">🚀</div>
+            <div class="stat-icon icon-green"><i class="fas fa-rocket"></i></div>
             <div class="stat-info">
               <p>Lançamentos</p>
               <span id="stat-lancamentos">—</span>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon icon-red">✅</div>
+            <div class="stat-icon icon-red"><i class="fas fa-check"></i></div>
             <div class="stat-info">
               <p>Prontos p/ Morar</p>
               <span id="stat-prontos">—</span>
@@ -200,13 +203,13 @@
             <h3>Configurações do Site</h3>
             <div style="display: flex; gap: 10px;">
               <button class="btn btn-primary" onclick="salvarConfig()" style="padding: 9px 18px; font-size: 14px;">
-                💾 Salvar Configurações
+                <i class="fas fa-save"></i> Salvar Configurações
               </button>
             </div>
           </div>
           <div style="padding: 28px;">
             <div class="info-box">
-              <strong>📌 Como usar</strong>
+              <strong><i class="fas fa-circle-info"></i> Como usar</strong>
               Altere as informações abaixo e clique em "Salvar Configurações". Depois exporte o JSON e substitua o arquivo <code>data/imoveis.json</code>.
             </div>
             <form id="form-config">
@@ -217,11 +220,11 @@
                 </div>
                 <div class="form-group">
                   <label>Telefone</label>
-                  <input type="text" name="telefone" placeholder="(75) 4141-4777">
+                  <input type="text" name="telefone" placeholder="(75) 99937-1939">
                 </div>
                 <div class="form-group">
                   <label>WhatsApp (somente números)</label>
-                  <input type="text" name="whatsapp" placeholder="5575414141777">
+                  <input type="text" name="whatsapp" placeholder="5575999371939">
                 </div>
                 <div class="form-group">
                   <label>E-mail</label>
@@ -307,7 +310,51 @@
       <!-- ============================================================
            SEÇÃO: DADOS
            ============================================================ -->
+      <div id="section-dados" class="admin-section">
+        <div class="admin-panel" style="margin-bottom: 24px;">
+          <div class="panel-header">
+            <h3><i class="fas fa-download"></i> Importar / Exportar Dados</h3>
+          </div>
+          <div style="padding: 28px;">
+            <div class="info-box">
+              <strong><i class="fas fa-lightbulb"></i> Como funciona a persistência</strong>
+              O site usa o arquivo <code>data/imoveis.json</code> como banco de dados. Para salvar as alterações feitas neste admin:
+              <br><br>
+              <strong><i class="fas fa-star"></i> Novo - Salvar Automático:</strong> Clique em <strong>"Salvar Alterações"</strong> para exportar e salvar automaticamente<br><br>
+              <strong>Alternativa - Exportar Manual:</strong><br>
+              1. Faça as edições nos imóveis<br>
+              2. Clique em <strong>"Baixar imoveis.json"</strong><br>
+              3. Substitua o arquivo <code>data/imoveis.json</code> pelo arquivo baixado<br><br>
+              Para produção, considere configurar um backend PHP/Node para gerenciar dados automaticamente (ver Ajuda).
+            </div>
 
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
+              <div style="background: #d1fae5; border-radius: var(--radius); padding: 24px;">
+                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-save"></i> Salvar no Servidor</h4>
+                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Exporta e salva automaticamente no arquivo <code>data/imoveis.json</code>.</p>
+                <button class="btn btn-primary" onclick="salvarParaServidor()" style="background: #10b981; border-color: #10b981;"><i class="fas fa-save"></i> Salvar Alterações</button>
+              </div>
+              <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
+                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-upload"></i> Exportar</h4>
+                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Baixa o arquivo JSON com todas as alterações feitas nesta sessão.</p>
+                <button class="btn btn-primary" onclick="exportarJSON()"><i class="fas fa-download"></i> Baixar imoveis.json</button>
+              </div>
+              <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
+                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-folder-open"></i> Importar</h4>
+                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Carrega um arquivo JSON para substituir os dados atuais.</p>
+                <button class="btn btn-outline" onclick="importarJSON()"><i class="fas fa-file-import"></i> Selecionar arquivo JSON</button>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px;">
+              <h4 style="color: var(--azul-escuro); margin-bottom: 12px;"><i class="fas fa-file-code"></i> JSON Atual (para copiar)</h4>
+              <div class="log-area" id="json-preview">Clique em "Ver JSON atual" para visualizar.</div>
+              <br>
+              <button class="btn btn-outline" onclick="mostrarJSON()"><i class="fas fa-eye"></i> Ver JSON atual</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ============================================================
            SEÇÃO: AJUDA
@@ -401,7 +448,7 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-titulo">Novo Imóvel</h3>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
     <div class="modal-body">
       <form id="form-imovel">
@@ -487,9 +534,22 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
           </div>
         </div>
 
+        <!-- SEÇÃO: CÔMODOS COM FOTOS -->
+        <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+          <h4 style="color: var(--azul-escuro); margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-images"></i> Fotos de Cômodos (Opcional)
+          </h4>
+          <div id="comodos-list" style="margin-bottom: 12px;">
+            <!-- Cômodos serão renderizados aqui -->
+          </div>
+          <button type="button" class="btn btn-outline" onclick="adicionarComodo()" style="font-size: 13px; padding: 8px 12px;">
+            + Adicionar Cômodo
+          </button>
+        </div>
+
         <!-- PREVIEW -->
         <div class="preview-card">
-          <p class="preview-label">👁️ Pré-visualização do Card</p>
+          <p class="preview-label"><i class="fas fa-eye"></i> Pré-visualização do Card</p>
           <div id="card-preview">Preencha o formulário para ver a prévia...</div>
         </div>
       </form>
@@ -505,7 +565,7 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-carousel-title">Novo Slide</h3>
-      <button class="modal-close" onclick="closeCarouselModal()">✕</button>
+      <button class="modal-close" onclick="closeCarouselModal()">&times;</button>
     </div>
     <div class="modal-body">
       <form id="form-carousel-item">
@@ -519,52 +579,38 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
             <textarea name="subtitle" rows="3" placeholder="Ex: Campanha com condições exclusivas..."></textarea>
           </div>
           <div class="form-group" style="grid-column: 1/-1;">
-            <label>Fonte da Imagem do Slide *</label>
-            <div class="image-source-row">
-              <label><input type="radio" name="imageSource" value="url" checked> URL</label>
-              <label><input type="radio" name="imageSource" value="upload"> Upload</label>
+            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <i class="fas fa-desktop" style="color: var(--azul);"></i>
+              <strong>Imagem para Desktop (Recomendado: 1240x420px)</strong>
+            </label>
+            <label style="display: block; margin-bottom: 8px;"><input type="radio" name="imageSource" value="url" checked> URL</label>
+            <div class="image-image-url" style="margin-bottom: 12px;">
+              <input type="url" name="imageUrl" placeholder="https://..." required>
             </div>
-          </div>
-          <div class="form-group image-image-url" style="grid-column: 1/-1;">
-            <label>URL da Imagem *</label>
-            <input type="url" name="imageUrl" placeholder="https://..." required>
-          </div>
-          <div class="form-group image-image-upload" style="grid-column: 1/-1; display:none;">
-            <label>Upload da Imagem *</label>
-            <input type="file" name="imageFile" accept="image/*">
-            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
-              Envie um banner 1240x420 para o carrossel. O arquivo será salvo em assets/uploads/ se o backend estiver disponível.
-            </small>
-          </div>
-          <input type="hidden" name="imageExisting">
-          <div class="form-group" style="grid-column: 1/-1; margin-top: 24px; border-top: 1px solid var(--cinza-borda); padding-top: 20px;">
-            <label style="font-weight: 700; margin-bottom: 12px; display: block;">📱 Imagem para Dispositivos Móveis (Opcional)</label>
-            <small style="color: var(--cinza-texto); font-size: 12px; margin-bottom: 12px; display: block;">
-              Forneça uma imagem otimizada para celulares. Recomendado: <strong>768x300</strong>. Esta será exibida em telas com menos de 768px.
-            </small>
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Fonte da Imagem Mobile</label>
-            <div class="image-source-row">
-              <label><input type="radio" name="imageMobileSource" value="url"> URL</label>
-              <label><input type="radio" name="imageMobileSource" value="upload"> Upload</label>
+            <label style="display: block; margin-bottom: 8px;"><input type="radio" name="imageSource" value="upload"> Upload</label>
+            <div class="image-image-upload" style="display:none; margin-bottom: 12px;">
+              <input type="file" name="imageFile" accept="image/*">
             </div>
+            <input type="hidden" name="imageExisting">
           </div>
-          <div class="form-group image-imageMobile-url" style="grid-column: 1/-1;">
-            <label>URL da Imagem Mobile</label>
-            <input type="url" name="imageMobileUrl" placeholder="https://...">
-            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
-              Use uma URL pública ou um banner de 768x300 para celular.
+          <div class="form-group" style="grid-column: 1/-1; border-top: 1px solid var(--cinza-borda); padding-top: 16px; margin-top: 12px;">
+            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <i class="fas fa-mobile-alt" style="color: var(--verde);"></i>
+              <strong>Imagem para Mobile (Opcional - Recomendado: 600x400px)</strong>
+            </label>
+            <label style="display: block; margin-bottom: 8px;"><input type="radio" name="imageMobileSource" value="url"> URL</label>
+            <div class="image-imageMobile-url" style="margin-bottom: 12px;">
+              <input type="url" name="imageMobileUrl" placeholder="https://...">
+            </div>
+            <label style="display: block; margin-bottom: 8px;"><input type="radio" name="imageMobileSource" value="upload"> Upload</label>
+            <div class="image-imageMobile-upload" style="display:none; margin-bottom: 12px;">
+              <input type="file" name="imageMobileFile" accept="image/*">
+            </div>
+            <input type="hidden" name="imageMobileExisting">
+            <small style="color: var(--cinza-texto); font-size: 12px; display: block; margin-top: 8px;">
+              <i class="fas fa-lightbulb"></i> Se não informar uma imagem mobile, será usada a versão desktop. Deixe em branco para usar apenas a imagem desktop.
             </small>
           </div>
-          <div class="form-group image-imageMobile-upload" style="grid-column: 1/-1; display:none;">
-            <label>Upload da Imagem Mobile</label>
-            <input type="file" name="imageMobileFile" accept="image/*">
-            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
-              Envie um banner 768x300 para celular. O arquivo será salvo em assets/uploads/ se o backend estiver disponível.
-            </small>
-          </div>
-          <input type="hidden" name="imageMobileExisting">
           <div class="form-group" style="grid-column: 1/-1;">
             <label>Link do slide</label>
             <input type="url" name="link" placeholder="pages/imoveis.html">
@@ -583,7 +629,7 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-user-title">Novo Usuário</h3>
-      <button class="modal-close" onclick="closeUserModal()">✕</button>
+      <button class="modal-close" onclick="closeUserModal()">&times;</button>
     </div>
     <div class="modal-body">
       <form id="form-user-item">
@@ -628,6 +674,7 @@ const originais = {
   config: 'Configurações do Site',
   usuarios: 'Usuários Admin',
   carousel: 'Carrossel de Publicidade',
+  dados: 'Importar / Exportar Dados',
   ajuda: 'Ajuda & Documentação'
 };
 

@@ -225,7 +225,7 @@ async function simulateEmailSend(data) {
     return true;
   } catch (error) {
     console.error('Erro ao enviar formulário:', error);
-    showToast('⚠️ Não foi possível enviar a mensagem. Tente novamente.', 'error');
+    showToast('<i class="fas fa-exclamation-triangle"></i> Não foi possível enviar a mensagem. Tente novamente.', 'error');
     return false;
   }
 }
@@ -323,10 +323,10 @@ function renderCarousel(container, items) {
 
   container.innerHTML = items.map(item => `
     <article class="carousel-slide">
-      <div class="carousel-slide-images">
-        <img src="${resolveMediaPath(item.image)}" alt="${item.title}" class="carousel-image carousel-image-desktop">
-        ${item.imageMobile ? `<img src="${resolveMediaPath(item.imageMobile)}" alt="${item.title}" class="carousel-image carousel-image-mobile">` : ''}
-      </div>
+      <picture class="carousel-picture">
+        ${item.imageMobile ? `<source media="(max-width: 768px)" srcset="${resolveMediaPath(item.imageMobile)}">` : ''}
+        <img src="${resolveMediaPath(item.imageDesktop || item.image)}" alt="${item.title}" class="carousel-slide-img">
+      </picture>
       ${item.link ? `<a href="${item.link}" class="carousel-slide-link" aria-label="Abrir ${item.title || 'slide'}"></a>` : ''}
     </article>
   `).join('');

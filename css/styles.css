@@ -199,8 +199,7 @@ img { max-width: 100%; display: block; }
   align-items: center;
   position: relative;
   overflow: hidden;
-  padding: 50px 0 30px;
-  zoom: 1.5;
+  padding: 80px 0 60px;
 }
 
 .hero-bg {
@@ -236,30 +235,74 @@ img { max-width: 100%; display: block; }
   display: grid;
   grid-template-columns: 1fr 380px;
   align-items: center;
-  gap: 60px;
+  gap: 80px;
   min-height: auto;
-  padding: 40px 0 30px;
+  padding: 50px 0;
 }
 
 .hero-content { color: white; }
 
-.hero-content .section-label { color: rgba(255,255,255,0.7); }
+.hero-content .section-label { 
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
 
 .hero-title {
-  font-size: clamp(36px, 5vw, 62px);
+  font-size: clamp(42px, 6vw, 72px);
   font-weight: 900;
-  line-height: 1.05;
+  line-height: 1.1;
   color: white;
-  margin-bottom: 20px;
+  margin-bottom: 28px;
+  letter-spacing: -1px;
 }
 
 .hero-title span { color: #e8a87c; }
 
+.hero-title-wrapper {
+  margin: 32px 0;
+}
+
+.hero-title-decoration {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e8a87c 20%, #e8a87c 80%, transparent);
+  margin: 20px 0;
+  position: relative;
+}
+
+.hero-title-decoration::before {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #e8a87c;
+  border-radius: 50%;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.hero-title-decoration::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #e8a87c;
+  border-radius: 50%;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+}
+
 .hero-sub {
   font-size: 18px;
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 36px;
-  max-width: 500px;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 42px;
+  max-width: 540px;
+  line-height: 1.6;
+  font-weight: 300;
 }
 
 .hero-stats {
@@ -350,6 +393,25 @@ img { max-width: 100%; display: block; }
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.carousel-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.carousel-slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .carousel-slide {
+    height: 300px;
+  }
 }
 
 .carousel-slide .carousel-slide-link {
@@ -893,10 +955,15 @@ img { max-width: 100%; display: block; }
   transform: translateY(20px);
   opacity: 0;
   transition: all 0.3s ease;
+  max-width: 320px;
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.5;
 }
 .toast.show { transform: translateY(0); opacity: 1; }
 .toast.success { border-left: 4px solid #27ae60; }
 .toast.error { border-left: 4px solid var(--vermelho); }
+.toast i { margin-right: 6px; }
 
 /* ============================================
    PÁGINA DE IMÓVEIS (imoveis.html)
@@ -926,7 +993,30 @@ img { max-width: 100%; display: block; }
   transition: var(--transition);
   color: var(--azul-escuro);
 }
+
 .filtro-btn:hover, .filtro-btn.active { background: var(--azul-escuro); color: white; border-color: var(--azul-escuro); }
+
+#filtro-regiao {
+  transition: var(--transition);
+}
+
+#filtro-regiao:hover, #filtro-regiao:focus {
+  border-color: var(--azul-escuro);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(61, 119, 168, 0.1);
+}
+
+@media (max-width: 768px) {
+  .filtros-inner {
+    justify-content: space-between;
+  }
+  
+  .filtros-inner > div:last-child {
+    flex-basis: 100%;
+    order: -1;
+    width: 100%;
+  }
+}
 
 /* ============================================
    PÁGINA ADMIN (admin.html)

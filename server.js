@@ -1,112 +1,170 @@
-const http = require('http');
-const fs = require('fs');
+const express = require('express');
+const multer = require('multer');
 const path = require('path');
-const url = require('url');
+const fs = require('fs');
 
-const PORT = 7070;
-const DATA_FILE = path.join(__dirname, 'data', 'imoveis.json');
-const UPLOADS_DIR = path.join(__dirname, 'assets', 'uploads');
+const app = express();
+const PORT = process.env.PORT || 8000;
 
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// Middleware
+app.use(express.json());
+app.use(express.static('.'));
+
+// Configurar multer para upload de arquivos
+const uploadsDir = path.join(__dirname, 'assets', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const server = http.createServer((req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  if (pathname === '/api/save' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body);
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, message: 'Dados salvos com sucesso' }));
-      } catch (error) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'JSON inválido' }));
-      }
-    });
-    return;
-  }
-
-  if (pathname === '/api/upload' && req.method === 'POST') {
-    const boundary = req.headers['content-type'].split('boundary=')[1];
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString('binary');
-    });
-    req.on('end', () => {
-      try {
-        const parts = body.split('--' + boundary);
-        for (let part of parts) {
-          if (part.includes('filename=')) {
-            const filenameMatch = part.match(/filename="([^"]+)"/);
-            if (filenameMatch) {
-              const filename = filenameMatch[1];
-              const fileStart = part.indexOf('\r\n\r\n') + 4;
-              const fileEnd = part.lastIndexOf('\r\n');
-              const fileContent = part.substring(fileStart, fileEnd);
-              const filePath = path.join(UPLOADS_DIR, filename);
-              fs.writeFileSync(filePath, fileContent, 'binary');
-              
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ 
-                ok: true, 
-                path: 'assets/uploads/' + filename 
-              }));
-              return;
-            }
-          }
-        }
-        throw new Error('Arquivo não encontrado');
-      } catch (error) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Erro no upload' }));
-      }
-    });
-    return;
-  }
-
-  const filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
-  const ext = path.extname(filePath);
-
-  if (fs.existsSync(filePath)) {
-    const content = fs.readFileSync(filePath);
-    const contentType = {
-      '.html': 'text/html',
-      '.css': 'text/css',
-      '.js': 'application/javascript',
-      '.json': 'application/json',
-      '.png': 'image/png',
-      '.jpg': 'image/jpeg',
-      '.gif': 'image/gif',
-      '.svg': 'image/svg+xml'
-    }[ext] || 'application/octet-stream';
-
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content);
-  } else {
-    res.writeHead(404);
-    res.end('Arquivo não encontrado');
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    // Sanitizar nome do arquivo
+    let filename = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const ext = path.extname(filename);
+    const baseName = path.basename(filename, ext);
+    
+    // Evitar sobrescrita de arquivos
+    let targetPath = path.join(uploadsDir, filename);
+    let counter = 1;
+    while (fs.existsSync(targetPath)) {
+      filename = `${baseName}-${counter}${ext}`;
+      targetPath = path.join(uploadsDir, filename);
+      counter++;
+    }
+    
+    cb(null, filename);
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
-  console.log('Pressione Ctrl+C para parar');
+const upload = multer({ storage });
+
+// ============================================================
+// ENDPOINTS
+// ============================================================
+
+/**
+ * POST /api/save
+ * Recebe JSON e salva em data/imoveis.json
+ */
+app.post('/api/save', (req, res) => {
+  try {
+    console.log('[SAVE] Recebendo requisição de salvar dados...');
+    
+    const dataDir = path.join(__dirname, 'data');
+    
+    // Criar pasta data se não existir
+    if (!fs.existsSync(dataDir)) {
+      console.log('[SAVE] Criando diretório data...');
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    const filePath = path.join(dataDir, 'imoveis.json');
+    
+    // Validar que req.body não está vazio
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.error('[ERROR] req.body vazio ou inválido');
+      return res.status(400).json({ ok: false, error: 'Dados vazio' });
+    }
+    
+    const jsonData = JSON.stringify(req.body, null, 2);
+    
+    // Validar JSON
+    try {
+      JSON.parse(jsonData);
+      console.log('[SAVE] JSON válido, tamanho:', jsonData.length, 'bytes');
+    } catch (e) {
+      console.error('[ERROR] JSON inválido:', e.message);
+      return res.status(400).json({ ok: false, error: 'JSON inválido: ' + e.message });
+    }
+    
+    // Salvar arquivo
+    fs.writeFileSync(filePath, jsonData, 'utf8');
+    
+    // Verificar se arquivo foi salvo
+    if (fs.existsSync(filePath)) {
+      const fileSize = fs.statSync(filePath).size;
+      console.log('<i class="fas fa-check"></i> Dados salvos em data/imoveis.json (', fileSize, 'bytes)');
+      res.json({ ok: true, message: 'Dados salvos com sucesso' });
+    } else {
+      throw new Error('Arquivo não foi criado');
+    }
+  } catch (error) {
+    console.error('[ERROR] Erro ao salvar:', error.message);
+    res.status(500).json({ ok: false, error: 'Erro ao salvar: ' + error.message });
+  }
+});
+
+/**
+ * POST /api/upload
+ * Endpoint para upload de arquivos
+ */
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  try {
+    console.log('[UPLOAD] Recebendo arquivo...');
+    
+    if (!req.file) {
+      console.error('[UPLOAD] Nenhum arquivo enviado');
+      return res.status(400).json({ ok: false, error: 'Arquivo não enviado' });
+    }
+    
+    console.log('[UPLOAD] Arquivo recebido:', {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      encoding: req.file.encoding,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      filename: req.file.filename
+    });
+    
+    const relativePath = `assets/uploads/${req.file.filename}`;
+    console.log('✅ Arquivo salvo em:', relativePath);
+    
+    res.json({ ok: true, path: relativePath });
+  } catch (error) {
+    console.error('[ERROR] Erro ao fazer upload:', error.message);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+/**
+ * GET /
+ * Serve a página index
+ */
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+/**
+ * GET /pages/admin.html
+ * Serve a página admin
+ */
+app.get('/pages/admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'pages', 'admin.html'));
+});
+
+// ============================================================
+// INICIAR SERVIDOR
+// ============================================================
+
+app.listen(PORT, () => {
+  console.log('');
+  console.log('╔═══════════════════════════════════════════════════════════╗');
+  console.log('║         🏠 Celli Cruz - Servidor Iniciado 🏠              ║');
+  console.log('╚═══════════════════════════════════════════════════════════╝');
+  console.log('');
+  console.log(`🌐 Local:     http://localhost:${PORT}`);
+  console.log(`📋 Admin:     http://localhost:${PORT}/pages/admin.html`);
+  console.log(`📂 Dados:     ./data/imoveis.json`);
+  console.log(`📸 Uploads:   ./assets/uploads/`);
+  console.log('');
+  console.log('Pressione Ctrl+C para parar o servidor');
+  console.log('');
+});
+
+// Tratamento de erros não capturados
+process.on('unhandledRejection', (err) => {
+  console.error('[ERROR] Erro não tratado:', err);
 });
