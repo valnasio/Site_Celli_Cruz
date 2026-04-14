@@ -1,0 +1,27 @@
+node_modules/
+npm-debug.log
+.git
+.gitignore
+.env.local
+.DS_Store
+*.log
+.vscode/
+.idea/
+dist/
+build/
+coverage/
+.nyc_output/
+*.swp
+*.swo
+*~
+.env
+.env.*.local
+docker-compose.override.yml
+Dockerfile.dev
+.dockerignore
+README.md
+QUICK_START.md
+start.bat
+start.sh
+Five Server
+.gitkeep
