@@ -1,0 +1,13 @@
+{
+  "name": "celli-cruz-server",
+  "version": "1.0.0",
+  "description": "Servidor Node.js para Celli Cruz Assessoria Imobiliária",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["celli", "cruz", "imobiliaria"],
+  "author": "Celli Cruz",
+  "license": "Proprietary"
+}

@@ -14,6 +14,8 @@ Site de imobiliária para Celli Cruz em Feira de Santana. Plataforma completa co
 ```
 cellicruz/
 ├── index.html              # Página inicial (home)
+├── server.js               # Servidor Node.js (IMPORTANTE!)
+├── package.json            # Configuração do Node.js
 ├── pages/
 │   ├── admin.html         # Painel administrativo
 │   ├── login.html         # Tela de login
@@ -26,8 +28,8 @@ cellicruz/
 │   ├── admin.js           # JavaScript do painel admin
 │   └── admin-auth.js      # Autenticação/login
 ├── api/
-│   ├── upload.php         # Faz upload de imagens
-│   └── save.php           # Salva dados dos imóveis
+│   ├── upload.php         # (Legado - não usado mais)
+│   └── save.php           # (Legado - não usado mais)
 ├── data/
 │   └── imoveis.json       # Banco de dados (armazena tudo)
 └── assets/
@@ -38,9 +40,8 @@ cellicruz/
 ## Como começar
 
 ### Requisitos
+- Node.js 12+ (baixar em https://nodejs.org)
 - Um navegador moderno (Chrome, Firefox, Safari, Edge)
-- PHP 7.0+ (se quiser usar upload de imagens)
-- Um servidor web local (Apache, Nginx, ou similar)
 
 ### Instalação Local
 
@@ -50,19 +51,14 @@ git clone https://github.com/valnasio/Site_Celli_Cruz.git
 cd Site_Celli_Cruz
 ```
 
-2. Abra o site no navegador:
+2. Rode o servidor Node.js:
 ```bash
-# Opção 1: Abra diretamente (sem servidor)
-Abra index.html no seu navegador
-
-# Opção 2: Com servidor local (Python)
-python -m http.server 8000
-# Abra http://localhost:8000 no navegador
-
-# Opção 3: Com servidor local (Node.js)
-npx http-server
-# Abra http://localhost:8080 no navegador
+node server.js
 ```
+
+3. Abra no navegador: `http://localhost:7070`
+
+Pronto! O servidor está rodando e os dados são salvos automaticamente.
 
 ## Como usar
 
@@ -110,13 +106,13 @@ Arquivo que armazena TODOS os dados:
 
 Este arquivo é atualizado automaticamente quando você salva algo no admin.
 
-### api/upload.php
-Recebe imagens do formulário e salva na pasta `assets/uploads/`.
+### server.js
+Servidor Node.js que:
+- Recebe requisições POST para `/api/save` e salva os dados
+- Recebe upload de imagens em `/api/upload`
+- Serve todos os arquivos HTML, CSS e JS
 
-Sem este arquivo, você não consegue fazer upload de imagens pelo admin.
-
-### api/save.php
-Salva os dados (imóveis, banners, etc) no arquivo `data/imoveis.json`.
+Este é o arquivo principal que mantém tudo funcionando!
 
 ### css/styles.css
 Um único arquivo com TODOS os estilos do site (alinhado com a marca Celli Cruz).
@@ -198,9 +194,9 @@ Ele contém:
 ### Como Isso Funciona Tecnicamente
 1. Você preenche um formulário no admin
 2. Clica em "Salvar"
-3. O JavaScript envia os dados via POST para `api/save.php`
-4. O PHP recebe e salva automaticamente em `data/imoveis.json`
-5. A página public automaticamente carrega os novos dados
+3. O JavaScript envia os dados via POST para `/api/save`
+4. O servidor Node.js recebe e salva automaticamente em `data/imoveis.json`
+5. A página pública automaticamente carrega os novos dados
 
 ## Problemas Comuns
 
@@ -210,10 +206,10 @@ Ele contém:
 - Verifique permissões de escrita na pasta
 
 ### "Dados não salvam"
-- Verifique se `api/save.php` está acessível
-- Confirme que o arquivo `data/imoveis.json` tem permissão de escrita
+- Verifique se o servidor Node.js está rodando (`node server.js`)
+- Confirme que está acessando `http://localhost:7070` (não `file://`)
 - Abra o DevTools (F12) e veja se há erros no console
-- Se estiver usando Live Server, mude para PHP local: `php -S localhost:8000`
+- Certifique-se que a pasta `data/` existe e tem permissão de escrita
 
 ### "Página fica em branco"
 - Abra o DevTools (F12) e veja os erros no console
@@ -251,26 +247,37 @@ Mude as cores conforme necessário.
 
 ## Fazer Deploy (colocar online)
 
-### Host com PHP
+### Opção 1: Servidor com Node.js (Recomendado)
 
-1. Faça upload de todos os arquivos para seu host
-2. Configure o banco de dados (se usar um)
-3. Atualize os URLs das APIs se necessário
-4. Teste o upload de imagens
+1. Faça upload de TODOS os arquivos para seu servidor
+2. Instale Node.js no servidor
+3. Rode:
+```bash
+node server.js
+```
+4. Acesse seu domínio na porta 7070 (ou mude a porta no server.js)
 
-### Host sem PHP (estático)
+Tudo funcionará: uploads, salvamento automático, tudo!
 
-Se seu host não suporta PHP, você perde a funcionalidade de upload. Neste caso:
-- Use URLs externas para imagens
-- Edite manualmente o arquivo `data/imoveis.json`
+### Opção 2: Plataforma de Hosting Node.js Gratuita
 
-### CloudFlare Pages / Netlify
+Hosts que suportam Node.js:
+- **Heroku** (https://heroku.com)
+- **Render** (https://render.com)
+- **Railway** (https://railway.app)
+- **Replit** (https://replit.com)
 
-1. Conecte seu repositório GitHub
-2. Configure a build (não precisa)
-3. Deploy automaticamente
+1. Faça fork do repositório
+2. Conecte ao hosting
+3. Defina a porta como 7070 em variáveis de ambiente
+4. Deploy e pronto!
 
-Nota: Sem backend PHP, upload não funciona.
+### Opção 3: Servidor VPS (DigitalOcean, AWS, etc)
+
+1. Configure um VPS Ubuntu/Linux
+2. Instale Node.js
+3. Use uma ferramenta como PM2 para manter o servidor rodando
+4. Configure um reverse proxy com Nginx
 
 ## Licença
 

@@ -82,7 +82,7 @@ function readFileAsDataUrl(file) {
 }
 
 async function uploadImageFile(file) {
-  const endpoint = getAdminApiPath('upload.php');
+  const endpoint = getAdminApiPath('upload');
   const formData = new FormData();
   formData.append('file', file);
 
