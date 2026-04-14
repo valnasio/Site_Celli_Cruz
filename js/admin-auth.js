@@ -24,9 +24,33 @@ function generateSalt(length = 16) {
 async function hashPassword(password, salt) {
   const encoder = new TextEncoder();
   const data = encoder.encode(salt + password);
-  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  
+  // ✅ Verifica se crypto.subtle está disponível
+  if (!window.crypto || !window.crypto.subtle) {
+    console.warn('crypto.subtle não disponível, usando fallback simples');
+    // Fallback: hash simples (menos seguro mas funciona em qualquer ambiente)
+    return simpleHash(salt + password);
+  }
+  
+  try {
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+  } catch (err) {
+    console.warn('Erro ao usar crypto.subtle:', err);
+    // Fallback se houver erro
+    return simpleHash(salt + password);
+  }
+}
+
+// ✅ Hash simples de fallback (não é tão seguro mas funciona em qualquer lugar)
+function simpleHash(str) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // Converter para 32-bit integer
+  }
+  return Math.abs(hash).toString(16);
 }
 
 function createSessionToken() {
