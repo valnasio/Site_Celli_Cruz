@@ -179,6 +179,29 @@ Para testar o sistema, aqui está um exemplo de usuário admin:
 
 Adicione isso em `data/imoveis.json` na seção `adminUsers`.
 
+## Como Funcionam os Dados
+
+### Salvamento Automático
+Quando você faz qualquer alteração no painel administrativo (adiciona imóvel, banner, muda configurações), os dados são **salvos automaticamente** no arquivo `data/imoveis.json`.
+
+Não precisa fazer nada manual - basta clicar em "Salvar" e pronto!
+
+### Onde os Dados Ficam
+Todos os dados estão em um único arquivo: `data/imoveis.json`
+
+Ele contém:
+- Configurações da empresa
+- Lista de imóveis
+- Banners do carrossel
+- Usuários do admin
+
+### Como Isso Funciona Tecnicamente
+1. Você preenche um formulário no admin
+2. Clica em "Salvar"
+3. O JavaScript envia os dados via POST para `api/save.php`
+4. O PHP recebe e salva automaticamente em `data/imoveis.json`
+5. A página public automaticamente carrega os novos dados
+
 ## Problemas Comuns
 
 ### "Upload não funciona"
@@ -190,6 +213,7 @@ Adicione isso em `data/imoveis.json` na seção `adminUsers`.
 - Verifique se `api/save.php` está acessível
 - Confirme que o arquivo `data/imoveis.json` tem permissão de escrita
 - Abra o DevTools (F12) e veja se há erros no console
+- Se estiver usando Live Server, mude para PHP local: `php -S localhost:8000`
 
 ### "Página fica em branco"
 - Abra o DevTools (F12) e veja os erros no console

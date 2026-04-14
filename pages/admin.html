@@ -84,9 +84,6 @@
       <a href="#" class="sidebar-link" data-section="carousel" onclick="showSection('carousel'); return false;">
         <i class="fas fa-image"></i> <span>Carrossel</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="dados" onclick="showSection('dados'); return false;">
-        <i class="fas fa-database"></i> <span>Importar / Exportar</span>
-      </a>
       <a href="#" class="sidebar-link" data-section="ajuda" onclick="showSection('ajuda'); return false;">
         <i class="fas fa-question-circle"></i> <span>Ajuda & Documentação</span>
       </a>
@@ -310,44 +307,7 @@
       <!-- ============================================================
            SEÇÃO: DADOS
            ============================================================ -->
-      <div id="section-dados" class="admin-section">
-        <div class="admin-panel" style="margin-bottom: 24px;">
-          <div class="panel-header">
-            <h3>📥 Importar / Exportar Dados</h3>
-          </div>
-          <div style="padding: 28px;">
-            <div class="info-box">
-              <strong>💡 Como funciona a persistência</strong>
-              O site usa o arquivo <code>data/imoveis.json</code> como banco de dados. Para salvar as alterações feitas neste admin:
-              <br><br>
-              1. Faça as edições nos imóveis<br>
-              2. Clique em <strong>"Exportar JSON"</strong><br>
-              3. Substitua o arquivo <code>data/imoveis.json</code> pelo arquivo baixado<br>
-              4. Para produção, configure um backend PHP/Node para salvar automaticamente (ver Ajuda)
-            </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-              <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
-                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;">📤 Exportar</h4>
-                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Baixa o arquivo JSON com todas as alterações feitas nesta sessão.</p>
-                <button class="btn btn-primary" onclick="exportarJSON()">📥 Baixar imoveis.json</button>
-              </div>
-              <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
-                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;">📂 Importar</h4>
-                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Carrega um arquivo JSON para substituir os dados atuais.</p>
-                <button class="btn btn-outline" onclick="importarJSON()">📂 Selecionar arquivo JSON</button>
-              </div>
-            </div>
-
-            <div style="margin-top: 24px;">
-              <h4 style="color: var(--azul-escuro); margin-bottom: 12px;"><i class="fas fa-file-code"></i> JSON Atual (para copiar)</h4>
-              <div class="log-area" id="json-preview">Clique em "Ver JSON atual" para visualizar.</div>
-              <br>
-              <button class="btn btn-outline" onclick="mostrarJSON()">👁️ Ver JSON atual</button>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- ============================================================
            SEÇÃO: AJUDA
@@ -668,7 +628,6 @@ const originais = {
   config: 'Configurações do Site',
   usuarios: 'Usuários Admin',
   carousel: 'Carrossel de Publicidade',
-  dados: 'Importar / Exportar Dados',
   ajuda: 'Ajuda & Documentação'
 };
 
