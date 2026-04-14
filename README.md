@@ -1,16 +1,33 @@
 # 🏠 Celli Cruz - Sistema de Gestão de Imóveis
 
-Sistema de admin para gerenciar imóveis com carrossel responsivo e upload de imagens.
+Sistema de admin para gerenciar imóveis com carrossel responsivo, upload de imagens e alta disponibilidade com Docker.
 
 ## 🚀 Instalação e Execução
 
-### 1️⃣ Instalar Dependências
+### ⭐ Opção 1: Docker (Recomendado)
+
+Com 2 replicas + load balancer Nginx:
+
+```bash
+docker compose up --build -d
+```
+
+Acessar:
+- **Site**: http://localhost
+- **Admin**: http://localhost/pages/admin.html
+- **API**: http://localhost/api/*
+
+[Ver documentação completa](DOCKER_SETUP.md)
+
+### Opção 2: Node.js Local
+
+#### 1️⃣ Instalar Dependências
 
 ```bash
 npm install
 ```
 
-### 2️⃣ Iniciar o Servidor
+#### 2️⃣ Iniciar o Servidor
 
 ```bash
 npm start
@@ -22,7 +39,7 @@ Ou com:
 node server.js
 ```
 
-### 3️⃣ Acessar a Aplicação
+#### 3️⃣ Acessar a Aplicação
 
 - **Site**: http://localhost:8000
 - **Painel Admin**: http://localhost:8000/pages/admin.html
@@ -46,6 +63,13 @@ node server.js
 ✅ **Banco de Dados Simples**
 - Usa JSON (`data/imoveis.json`)
 - Upload de arquivos em `assets/uploads/`
+
+✅ **Alta Disponibilidade (Docker)**
+- 2 replicas de app Node.js
+- Load balancer Nginx
+- Auto-restart em caso de falha
+- 0 downtime na atualização
+- Volumes compartilhados
 
 ## 📂 Estrutura de Pastas
 

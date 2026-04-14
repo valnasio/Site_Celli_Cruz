@@ -1,6 +1,32 @@
 # ⚡ Quick Start
 
-## 🚀 Início Rápido (3 passos)
+## � Opção 1: Docker (Recomendado)
+
+### 3 Passos
+
+```bash
+# 1. Build
+docker compose up --build -d
+
+# 2. Aguardar health check (~30s)
+docker compose ps
+
+# 3. Abrir no navegador
+# Site: http://localhost
+# Admin: http://localhost/pages/admin.html
+```
+
+**Benefícios:**
+- ✅ 2 replicas (alta disponibilidade)
+- ✅ Load balancer automático
+- ✅ Auto-restart
+- ✅ Zero downtime
+
+[Documentação completa](DOCKER_SETUP.md)
+
+---
+
+## 🚀 Opção 2: Node.js Local
 
 ### 1. Instalar Dependências
 ```bash
