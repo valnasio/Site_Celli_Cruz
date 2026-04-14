@@ -290,10 +290,10 @@
       "plantas": [],
       "comodos": [
         {
-          "id": 1776162140837,
-          "nome": "Quartos",
+          "id": 1776162865386,
+          "nome": "quarto",
           "fotos": [
-            "http://127.0.0.1:8000/pages/assets/uploads/post_thumbnail-234c136d094ceb3451da6c0488a5da34-1.jpeg"
+            "http://127.0.0.1:8000/assets/uploads/post_thumbnail-234c136d094ceb3451da6c0488a5da34-2.jpeg"
           ]
         }
       ],
