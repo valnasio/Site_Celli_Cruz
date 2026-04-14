@@ -1004,7 +1004,6 @@ function renderFotosComodo(comodoId, fotos) {
     </div>
   `}).join('');
 }
-}
 
 function adicionarFotoComodo(comodoId) {
   const input = document.createElement('input');
