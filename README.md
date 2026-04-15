@@ -17,6 +17,8 @@ Acessar:
 - **Admin**: http://localhost/pages/admin.html
 - **API**: http://localhost/api/*
 
+O SSL pode ser instalado de forma automática usando `ssl-setup.sh` ou `ssl-setup.ps1`.
+
 [Ver documentação completa](DOCKER_SETUP.md)
 
 ### Opção 2: Node.js Local

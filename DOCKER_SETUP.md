@@ -176,13 +176,41 @@ docker compose down -v && docker compose up --build -d
 - ✅ Compressão Gzip habilitada
 - ✅ Client body size limitado
 
-### Configurar HTTPS
+### Configurar HTTPS automático com Let's Encrypt
 
-1. Obter certificado SSL (Let's Encrypt)
-2. Copiar `cert.pem` e `key.pem` para pasta `ssl/`
-3. Descomente seção HTTPS em `nginx.conf`
-4. Atualizar `server_name seu-dominio.com.br`
-5. Reinicie: `docker-compose restart nginx`
+O domínio padrão já está definido em `.env` como:
+
+```env
+DOMAIN=cellicruz.valnasio.com.br
+CERTBOT_EMAIL=seu-email@dominio.com.br
+```
+
+Para instalar o certificado automaticamente:
+
+1. Garanta que `cellicruz.valnasio.com.br` aponte para este servidor.
+2. Inicie o Nginx e o ambiente Docker:
+   ```bash
+docker compose up -d
+```
+3. Execute o script de emissão de SSL:
+   ```bash
+./ssl-setup.sh
+```
+
+Em Windows PowerShell, use:
+
+```powershell
+.\ssl-setup.ps1
+```
+
+O script irá:
+- criar as pastas necessárias (`ssl/`, `letsencrypt/`, `webroot/`)
+- iniciar o serviço `nginx`
+- solicitar o certificado via Certbot usando `webroot`
+- copiar `fullchain.pem` e `privkey.pem` para `ssl/cert.pem` e `ssl/key.pem`
+- reiniciar o `nginx`
+
+> Para trocar o domínio depois, altere apenas `DOMAIN` em `.env` e execute o script novamente.
 
 ## 📈 Monitoramento
 
