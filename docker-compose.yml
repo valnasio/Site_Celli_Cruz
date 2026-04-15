@@ -5,15 +5,20 @@ services:
   # NGINX - Load Balancer & Reverse Proxy
   # ============================================================
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
     container_name: celli_cruz_nginx
+    env_file:
+      - .env
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
+      - ./ssl:/etc/nginx/ssl
       - ./webroot:/var/www/certbot
+      - ./letsencrypt:/etc/letsencrypt
     depends_on:
       - app1
       - app2
@@ -26,17 +31,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
-  certbot:
-    image: certbot/certbot
-    container_name: celli_cruz_certbot
-    volumes:
-      - ./webroot:/var/www/certbot
-      - ./letsencrypt:/etc/letsencrypt
-      - ./ssl:/etc/nginx/ssl
-    networks:
-      - celli_network
-    restart: "no"
 
   # ============================================================
   # APLICAÇÃO - Réplica 1

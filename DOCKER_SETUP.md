@@ -185,29 +185,19 @@ DOMAIN=cellicruz.valnasio.com.br
 CERTBOT_EMAIL=seu-email@dominio.com.br
 ```
 
-Para instalar o certificado automaticamente:
+Para iniciar o ambiente com SSL automático:
 
 1. Garanta que `cellicruz.valnasio.com.br` aponte para este servidor.
-2. Inicie o Nginx e o ambiente Docker:
+2. Execute:
    ```bash
 docker compose up -d
 ```
-3. Execute o script de emissão de SSL:
-   ```bash
-./ssl-setup.sh
-```
 
-Em Windows PowerShell, use:
+A imagem customizada de Nginx tentará emitir o certificado automaticamente usando Certbot e `webroot`.
 
-```powershell
-.\ssl-setup.ps1
-```
+Se a emissão falhar (por domínio não apontado ou portas bloqueadas), o Nginx continuará rodando com um certificado temporário para permitir teste local.
 
-O script irá:
-- criar as pastas necessárias (`ssl/`, `letsencrypt/`, `webroot/`)
-- iniciar o serviço `nginx`
-- solicitar o certificado via Certbot usando `webroot`
-- copiar `fullchain.pem` e `privkey.pem` para `ssl/cert.pem` e `ssl/key.pem`
+> Para trocar o domínio depois, altere `DOMAIN` em `.env` e reinicie o serviço.
 - reiniciar o `nginx`
 
 > Para trocar o domínio depois, altere apenas `DOMAIN` em `.env` e execute o script novamente.

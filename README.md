@@ -17,7 +17,7 @@ Acessar:
 - **Admin**: http://localhost/pages/admin.html
 - **API**: http://localhost/api/*
 
-O SSL pode ser instalado de forma automática usando `ssl-setup.sh` ou `ssl-setup.ps1`.
+O SSL para `cellicruz.valnasio.com.br` é emitido automaticamente quando o domínio estiver apontando corretamente e o `docker compose up -d` for executado.
 
 [Ver documentação completa](DOCKER_SETUP.md)
 
