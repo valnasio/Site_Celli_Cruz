@@ -135,12 +135,20 @@ Upload de arquivos para `assets/uploads/`
 }
 ```
 
-## 🛠️ Tecnologias
+## � Especificações Técnicas
 
-- **Backend**: Node.js + Express.js
-- **File Upload**: Multer
-- **Frontend**: HTML5 + CSS3 + JavaScript Vanilla
-- **Database**: JSON
+### 📸 Resolução das Imagens do Carrossel
+- **Resolução Validada**: 1776x592 pixels (proporção 1776:592 ≈ 3:1)
+- **Formato**: PNG, JPG, JPEG, GIF, WebP
+- **Tamanho Máximo**: 5MB por arquivo
+- **Exibição**: As imagens são exibidas com `object-fit: contain` para manter a proporção completa sem cortes
+
+### 🎨 Layout Responsivo
+- **Carrossel**: Horizontal com scroll snap, sem sobreposição entre slides
+- **Seções**: Full-viewport com padding de 120px para evitar sobreposições
+- **Grid de Imóveis**: Responsivo com mínimo 340px por card
+
+## 🛠️ Tecnologias
 
 ## 📝 Notas Importantes
 

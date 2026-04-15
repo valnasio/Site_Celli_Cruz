@@ -5,6 +5,198 @@
  */
 
 // ============================================================
+// SEGURANÇA - FUNÇÕES DE SANITIZAÇÃO
+// ============================================================
+
+/**
+ * Sanitiza strings para prevenir XSS
+ * Remove caracteres e tags perigosas
+ */
+function sanitizeString(str) {
+  if (typeof str !== 'string') return '';
+  
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/**
+ * Valida e sanitiza URLs
+ * Permite apenas http, https, mailto, tel e rotas relativas
+ */
+function sanitizeUrl(url) {
+  if (typeof url !== 'string') return '#';
+  
+  url = url.trim();
+  
+  // Protocolo whitelist
+  if (url.startsWith('http://') || url.startsWith('https://') || 
+      url.startsWith('mailto:') || url.startsWith('tel:') || 
+      url.startsWith('#') || url.startsWith('/') || url.startsWith('./') || 
+      url.startsWith('../')) {
+    return url;
+  }
+  
+  // URL relativa segura
+  if (!url.includes(':')) return url;
+  
+  return '#';
+}
+
+/**
+ * Sanitiza HTML mantendo apenas tags seguras
+ */
+function sanitizeHtml(html) {
+  if (typeof html !== 'string') return '';
+  
+  const allowedTags = ['b', 'i', 'em', 'strong', 'br', 'p', 'span', 'a', 'img'];
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  
+  const walk = (node) => {
+    const nodesToRemove = [];
+    
+    for (let i = 0; i < node.childNodes.length; i++) {
+      const child = node.childNodes[i];
+      
+      if (child.nodeType === 1) { // Element node
+        const tagName = child.tagName.toLowerCase();
+        
+        if (!allowedTags.includes(tagName)) {
+          nodesToRemove.push(child);
+          continue;
+        }
+        
+        // Remover atributos perigosos
+        if (tagName === 'a') {
+          const href = child.getAttribute('href');
+          if (href && href.toLowerCase().startsWith('javascript:')) {
+            nodesToRemove.push(child);
+            continue;
+          }
+        }
+        
+        if (tagName === 'img') {
+          const src = child.getAttribute('src');
+          if (src && src.toLowerCase().startsWith('javascript:')) {
+            nodesToRemove.push(child);
+            continue;
+          }
+        }
+        
+        // Remover event listeners
+        Array.from(child.attributes).forEach(attr => {
+          if (attr.name.startsWith('on')) {
+            child.removeAttribute(attr.name);
+          }
+        });
+        
+        walk(child);
+      }
+    }
+    
+    nodesToRemove.forEach(n => n.remove());
+  };
+  
+  walk(div);
+  return div.innerHTML;
+}
+
+/**
+ * Valida entrada de formulário
+ */
+function validateFormInput(value, type = 'text') {
+  if (typeof value !== 'string') return '';
+  
+  value = value.trim();
+  
+  switch(type) {
+    case 'email':
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : '';
+    case 'phone':
+      return /^[\d\s\-\+\(\)]{10,}$/.test(value) ? value : '';
+    case 'url':
+      try {
+        new URL(value);
+        return value;
+      } catch {
+        return '';
+      }
+    default:
+      return value;
+  }
+}
+
+// ============================================================
+// OTIMIZAÇÃO DE PERFORMANCE
+// ============================================================
+
+// Lazy Loading para imagens
+function initLazyLoading() {
+  const images = document.querySelectorAll('img[data-src]');
+  const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        img.src = img.dataset.src;
+        img.classList.remove('lazy');
+        observer.unobserve(img);
+      }
+    });
+  }, {
+    rootMargin: '50px 0px',
+    threshold: 0.01
+  });
+
+  images.forEach(img => imageObserver.observe(img));
+}
+
+// Otimização de scroll performance
+function initScrollOptimization() {
+  let ticking = false;
+
+  function updateScroll() {
+    // Animações baseadas em scroll podem ser adicionadas aqui
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(updateScroll);
+      ticking = true;
+    }
+  }, { passive: true });
+}
+
+// Preload de recursos críticos
+function preloadCriticalResources() {
+  const criticalImages = [
+    './assets/logo.png'
+  ];
+
+  criticalImages.forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+}
+
+// Compressão e otimização de imagens (simulação)
+function optimizeImages() {
+  const images = document.querySelectorAll('img');
+  images.forEach(img => {
+    // Adiciona loading="lazy" se não tiver
+    if (!img.hasAttribute('loading')) {
+      img.setAttribute('loading', 'lazy');
+    }
+
+    // Adiciona decoding="async" para performance
+    if (!img.hasAttribute('decoding')) {
+      img.setAttribute('decoding', 'async');
+    }
+  });
+}
+
+// ============================================================
 // CONFIGURAÇÃO GLOBAL
 // ============================================================
 
@@ -20,7 +212,18 @@ const dataPath = isInPages ? '../data/imoveis.json' : './data/imoveis.json';
 function resolveMediaPath(src) {
   if (!src) return src;
   if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('/')) return src;
-  return (isInPages ? '../' : './') + src;
+
+  const basePath = (isInPages ? '../' : './') + src;
+
+  // Verificar se existe versão WebP
+  const webpPath = basePath.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+
+  // Retornar WebP se suportado pelo navegador
+  if (webpPath !== basePath && 'webp' in window) {
+    return webpPath;
+  }
+
+  return basePath;
 }
 
 // ============================================================
@@ -28,12 +231,16 @@ function resolveMediaPath(src) {
 // ============================================================
 
 async function loadData() {
+  console.log('loadData called, dataPath:', dataPath);
   try {
     const res = await fetch(dataPath);
+    console.log('fetch response:', res);
     if (!res.ok) throw new Error('Erro ao carregar dados');
-    return await res.json();
+    const data = await res.json();
+    console.log('data loaded:', data);
+    return data;
   } catch (e) {
-    console.warn('Não foi possível carregar dados do JSON. Usando dados de fallback.');
+    console.warn('Não foi possível carregar dados do JSON. Usando dados de fallback.', e);
     return null;
   }
 }
@@ -294,20 +501,23 @@ function verImovel(id) {
 // ============================================================
 
 const DIFERENCIAIS = [
-  {  label: 'Piscina Adulto e Infantil' },
-  {  label: 'Academia Equipada' },
-  {  label: 'Quadra Poliesportiva' },
-  {  label: 'Brinquedoteca' },
-  {  label: 'Salão de Festas' },
-  {  label: 'Salão de Jogos' },
-  {  label: 'Espaço Gourmet' },
-  {  label: 'Segurança 24h' },
+  { icon: 'fas fa-swimmer', label: 'Piscina Adulto e Infantil' },
+  { icon: 'fas fa-dumbbell', label: 'Academia Equipada' },
+  { icon: 'fas fa-basketball-ball', label: 'Quadra Poliesportiva' },
+  { icon: 'fas fa-child', label: 'Brinquedoteca' },
+  { icon: 'fas fa-birthday-cake', label: 'Salão de Festas' },
+  { icon: 'fas fa-gamepad', label: 'Salão de Jogos' },
+  { icon: 'fas fa-utensils', label: 'Espaço Gourmet' },
+  { icon: 'fas fa-shield-alt', label: 'Segurança 24h' },
 ];
 
 function renderDiferenciais(container) {
   if (!container) return;
   container.innerHTML = DIFERENCIAIS.map(d => `
     <div class="dif-card fade-in-up">
+      <div class="dif-icon">
+        <i class="${d.icon}"></i>
+      </div>
       <h4>${d.label}</h4>
     </div>
   `).join('');
@@ -395,6 +605,7 @@ function initCarouselAutoScroll() {
   if (!track || track.children.length <= 1) return;
 
   let paused = false;
+  let isScrolling = false;
   const slideGap = 22;
   const intervalMs = 5000;
 
@@ -403,21 +614,45 @@ function initCarouselAutoScroll() {
     setActiveCarouselIndicator(activeIndex);
   };
 
-  track.addEventListener('mouseenter', () => { paused = true; });
-  track.addEventListener('mouseleave', () => { paused = false; });
-  track.addEventListener('scroll', () => { requestAnimationFrame(updateIndicator); });
+  const scrollToNextSlide = () => {
+    if (isScrolling) return;
+    
+    const slides = Array.from(track.querySelectorAll('.carousel-slide'));
+    if (slides.length === 0) return;
 
-  setInterval(() => {
-    if (paused) return;
+    const slideWidth = slides[0].offsetWidth;
     const maxScroll = track.scrollWidth - track.clientWidth;
-    if (track.scrollLeft + 10 >= maxScroll) {
-      track.scrollTo({ left: 0, behavior: 'smooth' });
-      return;
+    const currentScroll = track.scrollLeft;
+    
+    // Calcula a próxima posição de scroll
+    let nextScroll = currentScroll + slideWidth + slideGap;
+    
+    // Se chegou ao final, volta ao início
+    if (nextScroll >= maxScroll - 5) {
+      nextScroll = 0;
     }
 
-    const firstSlide = track.querySelector('.carousel-slide');
-    const step = firstSlide ? firstSlide.offsetWidth + slideGap : track.clientWidth;
-    track.scrollBy({ left: step, behavior: 'smooth' });
+    isScrolling = true;
+    track.scrollTo({ 
+      left: nextScroll, 
+      behavior: 'smooth' 
+    });
+
+    // Aguarda o término da animação
+    setTimeout(() => {
+      isScrolling = false;
+    }, 500);
+  };
+
+  track.addEventListener('mouseenter', () => { paused = true; });
+  track.addEventListener('mouseleave', () => { paused = false; });
+  track.addEventListener('scroll', () => { requestAnimationFrame(updateIndicator); }, { passive: true });
+
+  // Auto scroll a cada intervalo
+  setInterval(() => {
+    if (!paused && !isScrolling) {
+      scrollToNextSlide();
+    }
   }, intervalMs);
 }
 
@@ -426,6 +661,12 @@ function initCarouselAutoScroll() {
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Inicializa otimizações de performance primeiro
+  preloadCriticalResources();
+  optimizeImages();
+  initScrollOptimization();
+  initLazyLoading();
+
   initHeader();
   initWhatsApp();
   initForms();

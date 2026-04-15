@@ -88,34 +88,41 @@ function getAdminSession() {
   }
 }
 
-function isAdminAuthenticated() {
-  return !!getAdminSession();
+async function isAdminAuthenticated() {
+  try {
+    const response = await fetch('/api/check-auth');
+    const data = await response.json();
+    return data.ok;
+  } catch {
+    return false;
+  }
 }
 
-function logoutAdmin() {
-  clearAdminSession();
+async function logoutAdmin() {
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch (err) {
+    console.warn('Erro ao fazer logout no servidor:', err);
+  }
   const redirectPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
   window.location.href = redirectPath;
 }
 
 async function loginAdmin(username, password) {
-  if (!username || !password) {
-    throw new Error('Usuário e senha são obrigatórios.');
+  const response = await fetch('/api/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const data = await response.json();
+  if (!data.ok) {
+    throw new Error(data.error);
   }
 
-  const data = await fetchAdminData();
-  const users = data.adminUsers || [];
-  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-  if (!user) {
-    throw new Error('Usuário ou senha inválidos.');
-  }
-
-  const hash = await hashPassword(password, user.salt);
-  if (hash !== user.passwordHash) {
-    throw new Error('Usuário ou senha inválidos.');
-  }
-
-  saveAdminSession(user.username);
+  return data;
 }
 
 async function initLoginForm() {
@@ -138,8 +145,8 @@ async function initLoginForm() {
   });
 }
 
-function requireAdminLogin() {
-  if (!isAdminAuthenticated()) {
+async function requireAdminLogin() {
+  if (!(await isAdminAuthenticated())) {
     const redirectPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
     window.location.href = redirectPath;
     return false;
@@ -147,14 +154,19 @@ function requireAdminLogin() {
   return true;
 }
 
-function getAuthenticatedAdminUsername() {
-  const session = getAdminSession();
-  return session ? session.username : null;
+async function getAuthenticatedAdminUsername() {
+  try {
+    const response = await fetch('/api/check-auth');
+    const data = await response.json();
+    return data.ok ? data.username : null;
+  } catch {
+    return null;
+  }
 }
 
 if (window.location.pathname.endsWith('/login.html')) {
-  document.addEventListener('DOMContentLoaded', () => {
-    if (isAdminAuthenticated()) {
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (await isAdminAuthenticated()) {
       window.location.href = 'admin.html';
       return;
     }
@@ -163,9 +175,9 @@ if (window.location.pathname.endsWith('/login.html')) {
 }
 
 if (window.location.pathname.endsWith('/admin.html')) {
-  document.addEventListener('DOMContentLoaded', () => {
-    if (!requireAdminLogin()) return;
-    const username = getAuthenticatedAdminUsername();
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (!(await requireAdminLogin())) return;
+    const username = await getAuthenticatedAdminUsername();
     const userLabel = document.getElementById('admin-user-name');
     if (userLabel && username) userLabel.textContent = username;
   });

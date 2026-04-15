@@ -5,8 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Celli Cruz - Assessoria Imobiliária | Feira de Santana</title>
   <meta name="description" content="Encontre os melhores imóveis em Feira de Santana com a Celli Cruz Assessoria Imobiliária. Lançamentos, apartamentos e casas.">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Preload recursos críticos -->
+  <link rel="preload" href="css/styles.css" as="style">
+  <link rel="preload" href="assets/logo.png" as="image">
+  <link rel="preload" href="js/main.js" as="script">
+  <link rel="preload" href="js/admin-auth.js" as="script">
+
+  <!-- CSS -->
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- DNS prefetch para CDN -->
+  <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+  <link rel="dns-prefetch" href="//fonts.googleapis.com">
+
+  <!-- Preconnect para performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
+  <!-- Fontes otimizadas -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="icon" href="assets/logo.png" type="image/png">
 </head>
 <body>
@@ -17,7 +40,10 @@
 <header class="header">
   <div class="container header-inner">
     <a href="index.html" class="logo">
-      <img src="assets/logo.png" alt="Celli Cruz Assessoria Imobiliária">
+      <picture>
+        <source srcset="assets/logo.webp" type="image/webp">
+        <img src="assets/logo.png" alt="Celli Cruz Assessoria Imobiliária" loading="eager">
+      </picture>
     </a>
     <nav class="nav">
       <a href="index.html" class="nav-link active">Início</a>
@@ -35,7 +61,7 @@
 <!-- ============================================================
      HERO SECTION
      ============================================================ -->
-<section class="hero">
+<section class="hero full-section">
   <div class="hero-bg"></div>
   <div class="container hero-inner">
     <div class="hero-content">
@@ -85,7 +111,7 @@
 <!-- ============================================================
      CARROSSEL PUBLICITÁRIO
      ============================================================ -->
-<section class="carousel-section">
+<section class="carousel-section full-section">
   <div class="container">
     <div class="section-header">
       <div>
@@ -104,7 +130,7 @@
 <!-- ============================================================
      DIFERENCIAIS
      ============================================================ -->
-<section class="diferenciais-section section-pad" id="sobre">
+<section class="diferenciais-section full-section" id="sobre">
   <div class="container">
     <div class="text-center">
       <p class="section-label">Por que escolher a Celli Cruz</p>
@@ -120,7 +146,7 @@
 <!-- ============================================================
      VITRINE DE IMÓVEIS
      ============================================================ -->
-<section class="vitrine-section section-pad">
+<section class="vitrine-section full-section">
   <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; margin-bottom: 0;">
       <div>
@@ -145,7 +171,7 @@
 <!-- ============================================================
      SEÇÃO SOBRE / EMPRESA
      ============================================================ -->
-<section class="section-pad" style="background: var(--cinza-bg);">
+<section class="full-section" style="background: var(--cinza-bg);">
   <div class="container">
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;">
       <div class="fade-in-up">
@@ -182,7 +208,7 @@
 <!-- ============================================================
      MAPA / LOCALIZAÇÃO
      ============================================================ -->
-<section class="map-section section-pad">
+<section class="map-section full-section">
   <div class="container">
     <div class="text-center" style="margin-bottom: 48px;">
       <p class="section-label">Onde estamos</p>
@@ -225,7 +251,7 @@
 <!-- ============================================================
      CTA + FORMULÁRIO DE CONTATO
      ============================================================ -->
-<section class="cta-section" id="contato">
+<section class="cta-section full-section" id="contato">
   <div class="container cta-inner">
     <div class="cta-text fade-in-up">
       <p class="section-label" style="color: rgba(255,255,255,0.6);">Fale conosco</p>
@@ -361,6 +387,22 @@
   </a>
 </div>
 
-<script src="js/main.js"></script>
+<script src="js/main.js" defer></script>
+<script src="js/admin-auth.js" defer></script>
+
+<!-- Service Worker para cache offline -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('SW registered: ', registration);
+        })
+        .catch(function(registrationError) {
+          console.log('SW registration failed: ', registrationError);
+        });
+    });
+  }
+</script>
 </body>
 </html>
