@@ -155,7 +155,7 @@ img { max-width: 100%; display: block; }
   height: 60px;
 }
 
-.logo img { height: 100px; width: auto; }
+.logo img { height: 140px; width: auto; }
 
 .nav { display: flex; align-items: center; gap: 8px; }
 
@@ -194,7 +194,7 @@ img { max-width: 100%; display: block; }
 
 /* --- HERO SECTION --- */
 .hero {
-  min-height: 70vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   position: relative;
