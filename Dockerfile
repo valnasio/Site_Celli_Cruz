@@ -21,13 +21,13 @@ RUN apk add --no-cache dumb-init
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copiar código da aplicação
-COPY . .
+COPY . /app
 
 # Criar diretórios necessários
 RUN mkdir -p /app/data /app/assets/uploads
 
 # Ajustar permissões para o usuário nodejs
-RUN chown -R 1001:1001 /app/data /app/assets/uploads
+RUN chown -R 1001:1001 /app/data /app/assets/uploads && chmod -R 777 /app/data /app/assets/uploads
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
