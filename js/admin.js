@@ -13,10 +13,11 @@
 // ESTADO DA APLICAÇÃO
 // ============================================================
 
-let appData = { config: {}, imoveis: [], carousel: [], adminUsers: [] };
+let appData = { config: {}, imoveis: [], carousel: [], adminUsers: [], whatsappOptions: [] };
 let editingId = null;
 let carouselEditingId = null;
 let userEditingId = null;
+let editingWhatsAppOptionId = null;
 
 // ============================================================
 // CARREGAR DADOS
@@ -28,6 +29,7 @@ async function loadAdminData() {
     appData = await res.json();
     appData.carousel = appData.carousel || [];
     appData.adminUsers = appData.adminUsers || [];
+    appData.whatsappOptions = appData.whatsappOptions || [];
     appData.about = appData.about || {
       aboutTitle: 'Quem somos',
       aboutSubtitle: 'A Celli Cruz conecta sua família ao melhor imóvel.',
@@ -898,6 +900,120 @@ function salvarConfig() {
   showAdminToast('<i class="fas fa-check"></i> Configurações salvas!');
 }
 
+function loadWhatsAppSection() {
+  renderWhatsAppOptionsList();
+  resetWhatsAppOptionEditor();
+}
+
+function renderWhatsAppOptionsList() {
+  const tbody = document.getElementById('whatsapp-options-tbody');
+  if (!tbody) return;
+
+  const options = (appData.whatsappOptions || []).slice().sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  if (options.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum loteamento configurado. Clique em "Novo Loteamento" para adicionar.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = options.map(option => `
+    <tr>
+      <td>${option.id}</td>
+      <td>${option.title || 'Sem nome'}</td>
+      <td>${option.whatsapp || 'Sem número'}</td>
+      <td style="white-space: nowrap; display: flex; gap: 8px;">
+        <button type="button" class="btn btn-outline" data-action="edit-whatsapp-option" data-id="${option.id}">Editar</button>
+        <button type="button" class="btn btn-outline" data-action="delete-whatsapp-option" data-id="${option.id}" style="border-color:#ef4444; color:#ef4444;">Excluir</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openWhatsAppOptionEditor(option = { id: '', title: '', description: '', whatsapp: '' }) {
+  editingWhatsAppOptionId = option.id || '';
+  const form = document.getElementById('form-whatsapp-option');
+  if (!form) return;
+
+  form.querySelector('[name="id"]').value = option.id || '';
+  form.querySelector('[name="title"]').value = option.title || '';
+  form.querySelector('[name="description"]').value = option.description || '';
+  form.querySelector('[name="whatsapp"]').value = option.whatsapp || '';
+
+  const title = document.getElementById('whatsapp-editor-title');
+  if (title) {
+    title.textContent = option.id ? 'Editar loteamento' : 'Novo loteamento';
+  }
+}
+
+function resetWhatsAppOptionEditor() {
+  openWhatsAppOptionEditor({ id: '', title: '', description: '', whatsapp: '' });
+}
+
+function handleWhatsAppOptionListClick(event) {
+  const button = event.target.closest('[data-action]');
+  if (!button) return;
+  const action = button.dataset.action;
+  const optionId = button.dataset.id;
+  if (!optionId) return;
+
+  if (action === 'edit-whatsapp-option') {
+    const option = appData.whatsappOptions.find(item => String(item.id) === String(optionId));
+    if (option) openWhatsAppOptionEditor(option);
+    return;
+  }
+
+  if (action === 'delete-whatsapp-option') {
+    const index = appData.whatsappOptions.findIndex(item => String(item.id) === String(optionId));
+    if (index >= 0) {
+      appData.whatsappOptions.splice(index, 1);
+      saveData();
+      renderWhatsAppOptionsList();
+      showAdminToast('<i class="fas fa-trash-alt"></i> Loteamento removido com sucesso.');
+    }
+    return;
+  }
+}
+
+function salvarWhatsAppOption(event) {
+  event.preventDefault();
+  const form = document.getElementById('form-whatsapp-option');
+  if (!form) return;
+
+  const idValue = form.querySelector('[name="id"]').value.trim();
+  const title = form.querySelector('[name="title"]').value.trim();
+  const description = form.querySelector('[name="description"]').value.trim();
+  const whatsapp = form.querySelector('[name="whatsapp"]').value.trim();
+
+  if (!title) {
+    showAdminToast('<i class="fas fa-exclamation-triangle"></i> O nome do loteamento é obrigatório.', 'error');
+    return;
+  }
+
+  if (!whatsapp || !/^\d{10,}$/.test(whatsapp.replace(/\D/g, ''))) {
+    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Informe um número de WhatsApp válido (somente dígitos).', 'error');
+    return;
+  }
+
+  const option = {
+    id: idValue ? parseInt(idValue, 10) : Date.now(),
+    title,
+    description,
+    whatsapp: whatsapp.replace(/\D/g, '')
+  };
+
+  const existingIndex = appData.whatsappOptions.findIndex(item => String(item.id) === String(option.id));
+  if (existingIndex >= 0) {
+    appData.whatsappOptions[existingIndex] = option;
+    showAdminToast('<i class="fas fa-check"></i> Loteamento atualizado com sucesso!');
+  } else {
+    appData.whatsappOptions.push(option);
+    showAdminToast('<i class="fas fa-check"></i> Loteamento criado com sucesso!');
+  }
+
+  saveData();
+  renderWhatsAppOptionsList();
+  resetWhatsAppOptionEditor();
+}
+
 // ============================================================
 // EXPORTAR JSON
 // ============================================================
@@ -959,6 +1075,7 @@ function showSection(sectionId) {
   if (activeLink) activeLink.classList.add('active');
 
   if (sectionId === 'config') loadConfigForm();
+  if (sectionId === 'whatsapp') loadWhatsAppSection();
 }
 
 // ============================================================
@@ -1144,6 +1261,18 @@ function setupEventListeners() {
   // Config section buttons
   const btnSaveConfig = document.getElementById('btn-save-config');
   if (btnSaveConfig) btnSaveConfig.addEventListener('click', salvarConfig);
+
+  const btnNewWhatsAppOption = document.getElementById('btn-new-whatsapp-option');
+  if (btnNewWhatsAppOption) btnNewWhatsAppOption.addEventListener('click', () => openWhatsAppOptionEditor({ id: '', title: '', description: '', whatsapp: '' }));
+
+  const whatsappOptionsList = document.getElementById('whatsapp-options-tbody');
+  if (whatsappOptionsList) whatsappOptionsList.addEventListener('click', handleWhatsAppOptionListClick);
+
+  const formWhatsAppOption = document.getElementById('form-whatsapp-option');
+  if (formWhatsAppOption) formWhatsAppOption.addEventListener('submit', salvarWhatsAppOption);
+
+  const btnCancelWhatsAppOption = document.getElementById('btn-cancel-whatsapp-option');
+  if (btnCancelWhatsAppOption) btnCancelWhatsAppOption.addEventListener('click', resetWhatsAppOptionEditor);
 
   // Carousel section buttons
   const btnNewCarousel = document.getElementById('btn-new-carousel');

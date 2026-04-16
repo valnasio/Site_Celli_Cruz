@@ -303,19 +303,39 @@ function initAnimations() {
 // ============================================================
 
 function initWhatsApp() {
-  // Modal de seleção de departamento é controlado via onclick no HTML
-  // Gerenciado pelas funções openWhatsAppModal(), closeWhatsAppModal(), redirectWhatsApp()
+  document.querySelectorAll('.js-whatsapp').forEach(element => {
+    element.addEventListener('click', (event) => {
+      event.preventDefault();
+      openWhatsAppModal();
+    });
+  });
+
+  const closeButton = document.getElementById('whatsapp-modal-close');
+  if (closeButton) {
+    closeButton.addEventListener('click', closeWhatsAppModal);
+  }
+
+  const body = document.getElementById('whatsapp-modal-body');
+  if (body) {
+    body.addEventListener('click', (event) => {
+      const item = event.target.closest('[data-whatsapp-id]');
+      if (!item) return;
+      event.preventDefault();
+      redirectWhatsApp(item.dataset.whatsappId);
+    });
+  }
 }
 
-// Abre o modal de seleção de departamento WhatsApp
-function openWhatsAppModal() {
+// Abre o modal de seleção de loteamento WhatsApp
+async function openWhatsAppModal() {
+  await renderWhatsAppOptions();
   const overlay = document.getElementById('whatsapp-modal-overlay');
   if (overlay) {
     overlay.classList.add('open');
   }
 }
 
-// Fecha o modal de seleção de departamento WhatsApp
+// Fecha o modal de seleção de loteamento WhatsApp
 function closeWhatsAppModal() {
   const overlay = document.getElementById('whatsapp-modal-overlay');
   if (overlay) {
@@ -323,34 +343,73 @@ function closeWhatsAppModal() {
   }
 }
 
-// Redireciona para WhatsApp do departamento especificado
-async function redirectWhatsApp(departamento) {
-  try {
-    // Carrega dados para pegar números WhatsApp
-    const dados = await loadData();
-    if (!dados || !dados.config) return;
+function getWhatsAppOptionsFromData(dados) {
+  const config = dados?.config || {};
+  const rawOptions = Array.isArray(dados?.whatsappOptions) ? dados.whatsappOptions : [];
 
-    const { config } = dados;
-    
-    let telefone;
-    if (departamento === 'vendas') {
-      telefone = config.whatsappVendas || config.whatsapp;
-    } else if (departamento === 'atendimento') {
-      telefone = config.whatsappAtendimento || config.whatsapp;
-    } else {
-      telefone = config.whatsapp;
-    }
+  if (rawOptions.length > 0) {
+    return rawOptions.map(option => ({
+      id: option.id || option.title || Date.now(),
+      title: option.title || 'Loteamento',
+      description: option.description || 'Selecione este loteamento para conversar via WhatsApp.',
+      whatsapp: String(option.whatsapp || option.numero || '').replace(/\D/g, '')
+    })).filter(option => option.whatsapp);
+  }
+
+  const fallback = [];
+  if (config.whatsappVendas) {
+    fallback.push({ id: 'vendas', title: 'Vendas', description: 'Tirar dúvidas sobre imóveis.', whatsapp: String(config.whatsappVendas).replace(/\D/g, '') });
+  }
+  if (config.whatsappAtendimento) {
+    fallback.push({ id: 'atendimento', title: 'Atendimento', description: 'Suporte e informações gerais.', whatsapp: String(config.whatsappAtendimento).replace(/\D/g, '') });
+  }
+  if (!fallback.length && config.whatsapp) {
+    fallback.push({ id: 'padrao', title: 'WhatsApp', description: 'Atendimento geral.', whatsapp: String(config.whatsapp).replace(/\D/g, '') });
+  }
+
+  return fallback;
+}
+
+async function renderWhatsAppOptions() {
+  const body = document.getElementById('whatsapp-modal-body');
+  if (!body) return;
+  body.innerHTML = '<div class="whatsapp-modal-placeholder">Carregando opções de loteamento...</div>';
+
+  const dados = await loadData();
+  const options = getWhatsAppOptionsFromData(dados || {});
+
+  if (!options.length) {
+    body.innerHTML = '<div class="whatsapp-modal-placeholder">Nenhum loteamento configurado. Vá ao painel administrativo para cadastrar os números de WhatsApp.</div>';
+    return;
+  }
+
+  body.innerHTML = options.map(option => `
+    <button type="button" class="whatsapp-option" data-whatsapp-id="${option.id}">
+      <div class="whatsapp-option-icon"><i class="fas fa-map-pin"></i></div>
+      <div class="whatsapp-option-text">
+        <strong>${sanitizeString(option.title)}</strong>
+        <p>${sanitizeString(option.description)}</p>
+      </div>
+    </button>
+  `).join('');
+}
+
+async function redirectWhatsApp(optionId) {
+  try {
+    const dados = await loadData();
+    if (!dados) return;
+
+    const options = getWhatsAppOptionsFromData(dados);
+    const option = options.find(item => String(item.id) === String(optionId)) || options[0];
+    const telefone = option?.whatsapp || String(dados.config?.whatsapp || '').replace(/\D/g, '');
 
     if (!telefone) {
       console.error('Nenhum número WhatsApp configurado');
       return;
     }
 
-    // Fecha o modal
     closeWhatsAppModal();
-
-    // Redireciona para WhatsApp
-    const msg = encodeURIComponent('Olá! Tenho interesse em conversar com o departamento de ' + departamento);
+    const msg = encodeURIComponent('Olá! Tenho interesse no loteamento ' + (option?.title || 'selecionado'));
     window.open(`https://wa.me/${telefone}?text=${msg}`, '_blank');
   } catch (e) {
     console.error('Erro ao redirecionar WhatsApp:', e);

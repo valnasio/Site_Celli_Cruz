@@ -78,6 +78,9 @@
       <a href="#" class="sidebar-link" data-section="config">
         <i class="fas fa-cog"></i> <span>Configurações</span>
       </a>
+      <a href="#" class="sidebar-link" data-section="whatsapp">
+        <i class="fas fa-comments"></i> <span>WhatsApp</span>
+      </a>
       <a href="#" class="sidebar-link" data-section="usuarios">
         <i class="fas fa-users"></i> <span>Usuários</span>
       </a>
@@ -262,6 +265,64 @@
                   <label>Texto da seção Missão</label>
                   <textarea name="aboutMissionText" rows="4" placeholder="Explique a missão da empresa e destaque os valores."></textarea>
                 </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SEÇÃO: WHATSAPP
+           ============================================================ -->
+      <div id="section-whatsapp" class="admin-section">
+        <div class="admin-panel">
+          <div class="panel-header">
+            <h3>WhatsApp / Loteamentos</h3>
+            <button id="btn-new-whatsapp-option" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
+              + Novo Loteamento
+            </button>
+          </div>
+          <div class="info-box">
+            Gerencie os loteamentos e seus números de WhatsApp. Essas opções aparecem quando o visitante clica em WhatsApp no site.
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Loteamento</th>
+                  <th>Número WhatsApp</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="whatsapp-options-tbody">
+                <tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="admin-panel" style="margin-top: 24px;">
+          <div class="panel-header">
+            <h3 id="whatsapp-editor-title">Novo loteamento</h3>
+          </div>
+          <div style="padding: 28px;">
+            <form id="form-whatsapp-option">
+              <input type="hidden" name="id" id="whatsapp-option-id">
+              <div class="form-group">
+                <label>Nome do loteamento</label>
+                <input type="text" name="title" placeholder="Ex: Loteamento Jardim das Acácias">
+              </div>
+              <div class="form-group">
+                <label>Descrição</label>
+                <input type="text" name="description" placeholder="Ex: Atendimento para lançamentos e reservas">
+              </div>
+              <div class="form-group full-width">
+                <label>WhatsApp (somente números)</label>
+                <input type="text" name="whatsapp" placeholder="55759991234567">
+              </div>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px;">
+                <button type="submit" class="btn btn-primary">Salvar loteamento</button>
+                <button type="button" class="btn btn-outline" id="btn-cancel-whatsapp-option">Cancelar</button>
               </div>
             </form>
           </div>

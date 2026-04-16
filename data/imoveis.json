@@ -347,5 +347,13 @@
       ],
       "imagemSource": "url"
     }
+  ],
+  "whatsappOptions": [
+    {
+      "id": 1776307445800,
+      "title": "teste",
+      "description": "teste",
+      "whatsapp": "75991734216"
+    }
   ]
 }

@@ -8,7 +8,7 @@
 
 /* --- VARIÁVEIS DE MARCA --- */
 :root {
-  --missao-bg: #cdd2d9;
+  --missao-bg: #5e5e5e14;
   --select-color: #eeefef;
   --azul-escuro: #1a2a3a;
   --azul-medio: #243447;
@@ -1223,7 +1223,7 @@ body {
 }
 
 /* --- MAPA --- */
-.map-section { background: var(--cinza-bg); }
+.map-section { background: var(--missao-bg); }
 .map-container {
   display: grid;
   grid-template-columns: 1fr 2fr;

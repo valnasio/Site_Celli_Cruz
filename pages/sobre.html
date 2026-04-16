@@ -20,7 +20,7 @@
       <a href="imoveis.html" class="nav-link">Imóveis</a>
       <a href="sobre.html" class="nav-link active">Sobre</a>
       <a href="../index.html#contato" class="nav-link">Contato</a>
-      <a href="#" class="nav-cta js-whatsapp" onclick="openWhatsAppModal(); return false;"><i class="fas fa-comments"></i> WhatsApp</a>
+      <a href="#" class="nav-cta js-whatsapp"><i class="fas fa-comments"></i> WhatsApp</a>
     </nav>
     <button class="menu-toggle" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -63,7 +63,7 @@
     <div class="contact-card">
       <h2>Fale conosco</h2>
       <p>Quer saber mais sobre nossos serviços ou imóveis? Nossa equipe está pronta para ajudar.</p>
-      <button class="btn btn-primary" onclick="openWhatsAppModal();">Abrir WhatsApp</button>
+      <button type="button" class="btn btn-primary js-whatsapp">Abrir WhatsApp</button>
     </div>
   </div>
 </section>
@@ -80,6 +80,7 @@
       <a href="imoveis.html" class="footer-link">Imóveis</a>
       <a href="sobre.html" class="footer-link">Sobre</a>
       <a href="../index.html#contato" class="footer-link">Contato</a>
+    </div>
     <div class="footer-col">
       <h4>Contato</h4>
       <a href="tel:75999371939" class="footer-link js-telefone">(75) 99937-1939</a>
@@ -88,6 +89,19 @@
     </div>
   </div>
 </footer>
+
+<!-- MODAL - SELETOR DE WHATSAPP -->
+<div class="whatsapp-modal-overlay" id="whatsapp-modal-overlay">
+  <div class="whatsapp-modal">
+    <div class="whatsapp-modal-header">
+      <h3>Escolha o loteamento</h3>
+      <button class="whatsapp-modal-close" id="whatsapp-modal-close" type="button">&times;</button>
+    </div>
+    <div class="whatsapp-modal-body" id="whatsapp-modal-body">
+      <div class="whatsapp-modal-placeholder">Carregando opções de loteamento...</div>
+    </div>
+  </div>
+</div>
 
 <script src="../js/main.js"></script>
 <script src="../js/sobre.js"></script>
