@@ -1,434 +1,161 @@
 /**
- * CELLI CRUZ - JavaScript Principal
- * Arquivo: js/main.js
- * Gerencia: carregamento de dados, interações globais, formulários, animações
+ * Main public-site runtime backed by Supabase.
  */
 
-// ============================================================
-// SEGURANÇA - FUNÇÕES DE SANITIZAÇÃO
-// ============================================================
+let cachedSiteData = null;
+let cachedSiteDataPromise = null;
 
-/**
- * Sanitiza strings para prevenir XSS
- * Remove caracteres e tags perigosas
- */
 function sanitizeString(str) {
   if (typeof str !== 'string') return '';
-  
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
 }
 
-/**
- * Valida e sanitiza URLs
- * Permite apenas http, https, mailto, tel e rotas relativas
- */
-function sanitizeUrl(url) {
-  if (typeof url !== 'string') return '#';
-  
-  url = url.trim();
-  
-  // Protocolo whitelist
-  if (url.startsWith('http://') || url.startsWith('https://') || 
-      url.startsWith('mailto:') || url.startsWith('tel:') || 
-      url.startsWith('#') || url.startsWith('/') || url.startsWith('./') || 
-      url.startsWith('../')) {
-    return url;
-  }
-  
-  // URL relativa segura
-  if (!url.includes(':')) return url;
-  
-  return '#';
-}
-
-/**
- * Sanitiza HTML mantendo apenas tags seguras
- */
 function sanitizeHtml(html) {
   if (typeof html !== 'string') return '';
-  
-  const allowedTags = ['b', 'i', 'em', 'strong', 'br', 'p', 'span', 'a', 'img'];
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  
-  const walk = (node) => {
-    const nodesToRemove = [];
-    
-    for (let i = 0; i < node.childNodes.length; i++) {
-      const child = node.childNodes[i];
-      
-      if (child.nodeType === 1) { // Element node
-        const tagName = child.tagName.toLowerCase();
-        
-        if (!allowedTags.includes(tagName)) {
-          nodesToRemove.push(child);
-          continue;
-        }
-        
-        // Remover atributos perigosos
-        if (tagName === 'a') {
-          const href = child.getAttribute('href');
-          if (href && href.toLowerCase().startsWith('javascript:')) {
-            nodesToRemove.push(child);
-            continue;
-          }
-        }
-        
-        if (tagName === 'img') {
-          const src = child.getAttribute('src');
-          if (src && src.toLowerCase().startsWith('javascript:')) {
-            nodesToRemove.push(child);
-            continue;
-          }
-        }
-        
-        // Remover event listeners
-        Array.from(child.attributes).forEach(attr => {
-          if (attr.name.startsWith('on')) {
-            child.removeAttribute(attr.name);
-          }
-        });
-        
-        walk(child);
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  template.content.querySelectorAll('script, iframe, object, embed').forEach((node) => node.remove());
+  template.content.querySelectorAll('*').forEach((node) => {
+    Array.from(node.attributes).forEach((attribute) => {
+      if (/^on/i.test(attribute.name)) {
+        node.removeAttribute(attribute.name);
       }
-    }
-    
-    nodesToRemove.forEach(n => n.remove());
-  };
-  
-  walk(div);
-  return div.innerHTML;
-}
-
-/**
- * Valida entrada de formulário
- */
-function validateFormInput(value, type = 'text') {
-  if (typeof value !== 'string') return '';
-  
-  value = value.trim();
-  
-  switch(type) {
-    case 'email':
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : '';
-    case 'phone':
-      return /^[\d\s\-\+\(\)]{10,}$/.test(value) ? value : '';
-    case 'url':
-      try {
-        new URL(value);
-        return value;
-      } catch {
-        return '';
-      }
-    default:
-      return value;
-  }
-}
-
-// ============================================================
-// OTIMIZAÇÃO DE PERFORMANCE
-// ============================================================
-
-// Lazy Loading para imagens
-function initLazyLoading() {
-  const images = document.querySelectorAll('img[data-src]');
-  const imageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const img = entry.target;
-        img.src = img.dataset.src;
-        img.classList.remove('lazy');
-        observer.unobserve(img);
+      if ((attribute.name === 'href' || attribute.name === 'src') && /^javascript:/i.test(attribute.value)) {
+        node.removeAttribute(attribute.name);
       }
     });
-  }, {
-    rootMargin: '50px 0px',
-    threshold: 0.01
   });
-
-  images.forEach(img => imageObserver.observe(img));
+  return template.innerHTML;
 }
 
-// Otimização de scroll performance
-function initScrollOptimization() {
-  let ticking = false;
-
-  function updateScroll() {
-    // Animações baseadas em scroll podem ser adicionadas aqui
-    ticking = false;
-  }
-
-  window.addEventListener('scroll', () => {
-    if (!ticking) {
-      requestAnimationFrame(updateScroll);
-      ticking = true;
-    }
-  }, { passive: true });
+function isAbsoluteUrl(value) {
+  return typeof value === 'string' && /^(https?:)?\/\//i.test(value);
 }
-
-// Preload de recursos críticos
-function preloadCriticalResources() {
-  const criticalImages = [
-    './assets/logo.png'
-  ];
-
-  criticalImages.forEach(src => {
-    const img = new Image();
-    img.src = src;
-  });
-}
-
-// Compressão e otimização de imagens (simulação)
-function optimizeImages() {
-  const images = document.querySelectorAll('img');
-  images.forEach(img => {
-    // Adiciona loading="lazy" se não tiver
-    if (!img.hasAttribute('loading')) {
-      img.setAttribute('loading', 'lazy');
-    }
-
-    // Adiciona decoding="async" para performance
-    if (!img.hasAttribute('decoding')) {
-      img.setAttribute('decoding', 'async');
-    }
-  });
-}
-
-// ============================================================
-// CONFIGURAÇÃO GLOBAL
-// ============================================================
-
-const CONFIG = {
-  dataUrl: '../data/imoveis.json',
-  whatsappMsg: encodeURIComponent('Olá! Tenho interesse em um imóvel da Celli Cruz. Podem me ajudar?')
-};
-
-// Detecta se está na raiz ou em /pages
-const isInPages = window.location.pathname.includes('/pages/');
-const dataPath = isInPages ? '../data/imoveis.json' : './data/imoveis.json';
 
 function resolveMediaPath(src) {
-  if (!src) return src;
-  if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('/')) return src;
-
-  const basePath = (isInPages ? '../' : './') + src;
-
-  // Verificar se existe versão WebP
-  const webpPath = basePath.replace(/\.(jpg|jpeg|png)$/i, '.webp');
-
-  // Retornar WebP se suportado pelo navegador
-  if (webpPath !== basePath && 'webp' in window) {
-    return webpPath;
+  if (!src) return '';
+  if (typeof window.resolveSupabaseAssetUrl === 'function') {
+    return window.resolveSupabaseAssetUrl(src);
   }
-
-  return basePath;
+  if (isAbsoluteUrl(src) || src.startsWith('data:') || src.startsWith('/')) {
+    return src;
+  }
+  const isInPages = window.location.pathname.includes('/pages/');
+  return `${isInPages ? '../' : './'}${src.replace(/^\.\//, '')}`;
 }
 
-// ============================================================
-// CARREGAMENTO DE DADOS
-// ============================================================
+async function loadData(options = {}) {
+  if (cachedSiteData && !options.force) {
+    return cachedSiteData;
+  }
 
-async function loadData() {
-  console.log('loadData called, dataPath:', dataPath);
-  try {
-    const res = await fetch(dataPath);
-    console.log('fetch response:', res);
-    if (!res.ok) throw new Error('Erro ao carregar dados');
-    const data = await res.json();
-    console.log('data loaded:', data);
+  if (cachedSiteDataPromise && !options.force) {
+    return cachedSiteDataPromise;
+  }
+
+  if (typeof window.fetchSiteData !== 'function') {
+    throw new Error('Supabase client nao inicializado.');
+  }
+
+  cachedSiteDataPromise = window.fetchSiteData({ force: options.force }).then((data) => {
+    cachedSiteData = data;
+    cachedSiteDataPromise = null;
     return data;
-  } catch (e) {
-    console.warn('Não foi possível carregar dados do JSON. Usando dados de fallback.', e);
-    return null;
-  }
+  }).catch((error) => {
+    cachedSiteDataPromise = null;
+    throw error;
+  });
+
+  return cachedSiteDataPromise;
 }
 
-// ============================================================
-// HEADER / NAVBAR
-// ============================================================
+function preloadCriticalResources() {
+  ['assets/logo.png'].forEach((src) => {
+    const img = new Image();
+    img.src = resolveMediaPath(src);
+  });
+}
+
+function optimizeImages() {
+  document.querySelectorAll('img').forEach((img) => {
+    if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
+    if (!img.hasAttribute('decoding')) img.setAttribute('decoding', 'async');
+  });
+}
+
+function initLazyLoading() {
+  const images = document.querySelectorAll('img[data-src]');
+  if (!images.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+      observer.unobserve(img);
+    });
+  }, { rootMargin: '80px 0px', threshold: 0.01 });
+
+  images.forEach((img) => observer.observe(img));
+}
+
+function initScrollOptimization() {
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+    });
+  }, { passive: true });
+}
 
 function initHeader() {
   const header = document.querySelector('.header');
   const menuToggle = document.querySelector('.menu-toggle');
   const nav = document.querySelector('.nav');
-
   if (!header) return;
 
-  // Scroll effect
   window.addEventListener('scroll', () => {
     header.classList.toggle('scrolled', window.scrollY > 20);
   }, { passive: true });
 
-  // Mobile menu
   if (menuToggle && nav) {
-    menuToggle.addEventListener('click', () => {
-      nav.classList.toggle('open');
-    });
+    menuToggle.addEventListener('click', () => nav.classList.toggle('open'));
   }
 
-  // Active link por página
-  const path = window.location.pathname;
-  document.querySelectorAll('.nav-link').forEach(link => {
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-link').forEach((link) => {
     const href = link.getAttribute('href');
-    if (href && (path.endsWith(href) || (path.endsWith('/') && href === 'index.html'))) {
+    if (!href) return;
+    if (currentPath.endsWith(href) || (currentPath.endsWith('/') && href === 'index.html')) {
       link.classList.add('active');
     }
   });
 }
 
-// ============================================================
-// ANIMAÇÃO FADE-IN-UP (Intersection Observer)
-// ============================================================
-
 function initAnimations() {
+  const elements = document.querySelectorAll('.fade-in-up');
+  if (!elements.length) return;
+
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
     });
   }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-  document.querySelectorAll('.fade-in-up').forEach((el, i) => {
-    el.style.transitionDelay = `${i * 0.07}s`;
-    observer.observe(el);
+  elements.forEach((element, index) => {
+    element.style.transitionDelay = `${index * 0.07}s`;
+    observer.observe(element);
   });
 }
 
-// ============================================================
-// WHATSAPP FLOAT
-// ============================================================
-
-function initWhatsApp() {
-  document.querySelectorAll('.js-whatsapp').forEach(element => {
-    element.addEventListener('click', (event) => {
-      event.preventDefault();
-      openWhatsAppModal();
-    });
-  });
-
-  const closeButton = document.getElementById('whatsapp-modal-close');
-  if (closeButton) {
-    closeButton.addEventListener('click', closeWhatsAppModal);
-  }
-
-  const body = document.getElementById('whatsapp-modal-body');
-  if (body) {
-    body.addEventListener('click', (event) => {
-      const item = event.target.closest('[data-whatsapp-id]');
-      if (!item) return;
-      event.preventDefault();
-      redirectWhatsApp(item.dataset.whatsappId);
-    });
-  }
-}
-
-// Abre o modal de seleção de loteamento WhatsApp
-async function openWhatsAppModal() {
-  await renderWhatsAppOptions();
-  const overlay = document.getElementById('whatsapp-modal-overlay');
-  if (overlay) {
-    overlay.classList.add('open');
-  }
-}
-
-// Fecha o modal de seleção de loteamento WhatsApp
-function closeWhatsAppModal() {
-  const overlay = document.getElementById('whatsapp-modal-overlay');
-  if (overlay) {
-    overlay.classList.remove('open');
-  }
-}
-
-function getWhatsAppOptionsFromData(dados) {
-  const config = dados?.config || {};
-  const rawOptions = Array.isArray(dados?.whatsappOptions) ? dados.whatsappOptions : [];
-
-  if (rawOptions.length > 0) {
-    return rawOptions.map(option => ({
-      id: option.id || option.title || Date.now(),
-      title: option.title || 'Loteamento',
-      description: option.description || 'Selecione este loteamento para conversar via WhatsApp.',
-      whatsapp: String(option.whatsapp || option.numero || '').replace(/\D/g, '')
-    })).filter(option => option.whatsapp);
-  }
-
-  const fallback = [];
-  if (config.whatsappVendas) {
-    fallback.push({ id: 'vendas', title: 'Vendas', description: 'Tirar dúvidas sobre imóveis.', whatsapp: String(config.whatsappVendas).replace(/\D/g, '') });
-  }
-  if (config.whatsappAtendimento) {
-    fallback.push({ id: 'atendimento', title: 'Atendimento', description: 'Suporte e informações gerais.', whatsapp: String(config.whatsappAtendimento).replace(/\D/g, '') });
-  }
-  if (!fallback.length && config.whatsapp) {
-    fallback.push({ id: 'padrao', title: 'WhatsApp', description: 'Atendimento geral.', whatsapp: String(config.whatsapp).replace(/\D/g, '') });
-  }
-
-  return fallback;
-}
-
-async function renderWhatsAppOptions() {
-  const body = document.getElementById('whatsapp-modal-body');
-  if (!body) return;
-  body.innerHTML = '<div class="whatsapp-modal-placeholder">Carregando opções de loteamento...</div>';
-
-  const dados = await loadData();
-  const options = getWhatsAppOptionsFromData(dados || {});
-
-  if (!options.length) {
-    body.innerHTML = '<div class="whatsapp-modal-placeholder">Nenhum loteamento configurado. Vá ao painel administrativo para cadastrar os números de WhatsApp.</div>';
-    return;
-  }
-
-  body.innerHTML = options.map(option => `
-    <button type="button" class="whatsapp-option" data-whatsapp-id="${option.id}">
-      <div class="whatsapp-option-icon"><i class="fas fa-map-pin"></i></div>
-      <div class="whatsapp-option-text">
-        <strong>${sanitizeString(option.title)}</strong>
-        <p>${sanitizeString(option.description)}</p>
-      </div>
-    </button>
-  `).join('');
-}
-
-async function redirectWhatsApp(optionId) {
-  try {
-    const dados = await loadData();
-    if (!dados) return;
-
-    const options = getWhatsAppOptionsFromData(dados);
-    const option = options.find(item => String(item.id) === String(optionId)) || options[0];
-    const telefone = option?.whatsapp || String(dados.config?.whatsapp || '').replace(/\D/g, '');
-
-    if (!telefone) {
-      console.error('Nenhum número WhatsApp configurado');
-      return;
-    }
-
-    closeWhatsAppModal();
-    const msg = encodeURIComponent('Olá! Tenho interesse no loteamento ' + (option?.title || 'selecionado'));
-    window.open(`https://wa.me/${telefone}?text=${msg}`, '_blank');
-  } catch (e) {
-    console.error('Erro ao redirecionar WhatsApp:', e);
-  }
-}
-
-// Fechar modal ao clicar fora dele
-document.addEventListener('click', function(e) {
-  const overlay = document.getElementById('whatsapp-modal-overlay');
-  if (overlay && e.target === overlay) {
-    closeWhatsAppModal();
-  }
-});
-
-// ============================================================
-// TOAST / NOTIFICAÇÕES
-// ============================================================
-
-function showToast(msg, type = 'success') {
+function showToast(message, type) {
   let toast = document.getElementById('toast');
   if (!toast) {
     toast = document.createElement('div');
@@ -436,217 +163,131 @@ function showToast(msg, type = 'success') {
     toast.className = 'toast';
     document.body.appendChild(toast);
   }
-  toast.className = `toast ${type}`;
-  toast.textContent = msg;
+  toast.className = `toast ${type || 'success'}`;
+  toast.textContent = message;
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 3500);
+  window.setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
-// ============================================================
-// FORMULÁRIO DE CONTATO (Hero e CTA)
-// ============================================================
+function renderDiferenciais(container) {
+  const diferenciais = [
+    { icon: 'fas fa-swimmer', label: 'Piscina Adulto e Infantil' },
+    { icon: 'fas fa-dumbbell', label: 'Academia Equipada' },
+    { icon: 'fas fa-basketball-ball', label: 'Quadra Poliesportiva' },
+    { icon: 'fas fa-child', label: 'Brinquedoteca' },
+    { icon: 'fas fa-birthday-cake', label: 'Salao de Festas' },
+    { icon: 'fas fa-gamepad', label: 'Salao de Jogos' },
+    { icon: 'fas fa-utensils', label: 'Espaco Gourmet' },
+    { icon: 'fas fa-shield-alt', label: 'Seguranca 24h' },
+  ];
 
-function initForms() {
-  document.querySelectorAll('.js-contact-form').forEach(form => {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = form.querySelector('button[type="submit"]');
-      const original = btn.textContent;
-      btn.textContent = 'Enviando...';
-      btn.disabled = true;
-
-      // Coleta dados
-      const data = Object.fromEntries(new FormData(form));
-
-      // Simula envio (substitua pelo seu endpoint real, ex: Formspree, EmailJS, etc.)
-      await simulateEmailSend(data);
-
-      btn.textContent = original;
-      btn.disabled = false;
-      form.reset();
-      showToast('✅ Mensagem enviada! Entraremos em contato em breve.', 'success');
-    });
-  });
-}
-
-/**
- * simulateEmailSend - Envia o formulário para o Formspree
- * Opções: Formspree (formspree.io), EmailJS, backend PHP/Node
- */
-async function simulateEmailSend(data) {
-  try {
-    const res = await fetch('https://formspree.io/f/mzdybvyd', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!res.ok) {
-      throw new Error(`Falha no envio: ${res.status}`);
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Erro ao enviar formulário:', error);
-    showToast('<i class="fas fa-exclamation-triangle"></i> Não foi possível enviar a mensagem. Tente novamente.', 'error');
-    return false;
-  }
-}
-
-// ============================================================
-// RENDERIZAR CARDS DE IMÓVEIS (Home)
-// ============================================================
-
-function renderImoveisDestaque(imoveis, container) {
   if (!container) return;
-  const destaques = imoveis.filter(i => i.destaque).slice(0, 3);
-  container.innerHTML = destaques.map(imovel => criarCardImovel(imovel)).join('');
+  container.innerHTML = diferenciais.map((item) => `
+    <div class="dif-card fade-in-up">
+      <div class="dif-icon">
+        <i class="${item.icon}"></i>
+      </div>
+      <h4>${item.label}</h4>
+    </div>
+  `).join('');
+}
+
+function verImovel(id) {
+  const base = window.location.pathname.includes('/pages/') ? '' : 'pages/';
+  window.location.href = `${base}imovel-detalhe.html?id=${id}`;
 }
 
 function criarCardImovel(imovel) {
-  const badgeClass = imovel.status === 'Lançamento' ? 'badge-lancamento'
-    : imovel.status === 'Em Obras' ? 'badge-obras' : 'badge-pronto';
-
   return `
     <div class="imovel-card fade-in-up" onclick="verImovel(${imovel.id})">
       <div class="imovel-card-img">
-        <img src="${resolveMediaPath(imovel.imagem)}" alt="${imovel.nome}" loading="lazy">
-        <span class="imovel-badge">${imovel.tag}</span>
+        <img src="${resolveMediaPath(imovel.imagem)}" alt="${sanitizeString(imovel.nome)}" loading="lazy">
+        <span class="imovel-badge">${sanitizeString(imovel.tag || '')}</span>
       </div>
       <div class="imovel-card-body">
-        <p class="imovel-cidade">${imovel.cidade}</p>
-        <h3 class="imovel-nome">${imovel.nome}</h3>
+        <p class="imovel-cidade">${sanitizeString(imovel.cidade || '')}</p>
+        <h3 class="imovel-nome">${sanitizeString(imovel.nome || '')}</h3>
         <div class="imovel-specs">
-          <span class="spec">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-            </svg>
-            ${imovel.quartos} Quartos
-          </span>
-          <span class="spec">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-            </svg>
-            A partir de ${imovel.metragem} m²
-          </span>
+          <span class="spec">${sanitizeString(String(imovel.quartos || 0))} Quartos</span>
+          <span class="spec">A partir de ${sanitizeString(imovel.metragem || '-')} m2</span>
         </div>
         <div class="imovel-card-footer">
-          <span class="imovel-bairro">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-              <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-            </svg>
-            ${imovel.bairro}
-          </span>
-          <span class=\"btn btn-primary\" style=\"padding: 8px 16px; font-size: 13px;\">Ver mais <i class=\"fas fa-arrow-right\"></i></span>
+          <span class="imovel-bairro">${sanitizeString(imovel.bairro || '')}</span>
+          <span class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;">Ver mais</span>
         </div>
       </div>
     </div>
   `;
 }
 
-// Navega para a página do imóvel
-function verImovel(id) {
-  const isInPages = window.location.pathname.includes('/pages/');
-  const base = isInPages ? '' : 'pages/';
-  window.location.href = `${base}imovel-detalhe.html?id=${id}`;
-}
-
-// ============================================================
-// DIFERENCIAIS DA HOME (dinâmico)
-// ============================================================
-
-const DIFERENCIAIS = [
-  { icon: 'fas fa-swimmer', label: 'Piscina Adulto e Infantil' },
-  { icon: 'fas fa-dumbbell', label: 'Academia Equipada' },
-  { icon: 'fas fa-basketball-ball', label: 'Quadra Poliesportiva' },
-  { icon: 'fas fa-child', label: 'Brinquedoteca' },
-  { icon: 'fas fa-birthday-cake', label: 'Salão de Festas' },
-  { icon: 'fas fa-gamepad', label: 'Salão de Jogos' },
-  { icon: 'fas fa-utensils', label: 'Espaço Gourmet' },
-  { icon: 'fas fa-shield-alt', label: 'Segurança 24h' },
-];
-
-function renderDiferenciais(container) {
+function renderImoveisDestaque(imoveis, container) {
   if (!container) return;
-  container.innerHTML = DIFERENCIAIS.map(d => `
-    <div class="dif-card fade-in-up">
-      <div class="dif-icon">
-        <i class="${d.icon}"></i>
-      </div>
-      <h4>${d.label}</h4>
-    </div>
-  `).join('');
+  const destaques = (imoveis || []).filter((item) => item.destaque).slice(0, 3);
+  container.innerHTML = destaques.length
+    ? destaques.map((item) => criarCardImovel(item)).join('')
+    : '<div style="grid-column: 1/-1; text-align: center; padding: 48px; color: var(--cinza-texto);">Nenhum imovel em destaque cadastrado.</div>';
 }
 
 function renderHomeAbout(about) {
   if (!about) return;
-
   const titleEl = document.getElementById('home-about-title');
   const summaryEl = document.getElementById('home-about-summary');
   const summaryEl2 = document.getElementById('home-about-summary-2');
   const mosaic = document.getElementById('home-about-mosaic');
 
-  if (titleEl) titleEl.textContent = about.aboutTitle || 'Nossa história';
-  if (summaryEl) summaryEl.textContent = about.aboutSummary || 'A Celli Cruz nasceu do legado de Sergio Henrique Silva Cruz e mantém ética, transparência e credibilidade em cada atendimento.';
-  if (summaryEl2) summaryEl2.textContent = about.aboutMissionText || 'Preservamos um legado de confiança e serviço humano em Feira de Santana.';
+  if (titleEl) titleEl.textContent = about.aboutTitle || titleEl.textContent;
+  if (summaryEl) summaryEl.textContent = about.aboutSummary || summaryEl.textContent;
+  if (summaryEl2) summaryEl2.textContent = about.aboutMissionText || summaryEl2.textContent;
 
-  const images = about.missionGallery || [];
-  if (mosaic && images.length > 0) {
-    mosaic.innerHTML = images.slice(0, 4).map((src, idx) => `
-      <div class="mission-mosaic-item"><img src="${resolveMediaPath(src)}" alt="Galeria missão ${idx + 1}"></div>
+  if (mosaic && Array.isArray(about.missionGallery) && about.missionGallery.length) {
+    mosaic.innerHTML = about.missionGallery.slice(0, 4).map((item, index) => `
+      <div class="mission-mosaic-item">
+        <img src="${resolveMediaPath(item)}" alt="Galeria missao ${index + 1}">
+      </div>
     `).join('');
   }
 }
 
 function renderCarousel(container, items) {
   if (!container) return;
-  if (!items || items.length === 0) {
-    container.innerHTML = '<div class="carousel-empty" style="color: var(--cinza-texto); padding: 28px;">Nenhum destaque publicitário disponível no momento.</div>';
+  const carouselItems = items || [];
+
+  if (!carouselItems.length) {
+    container.innerHTML = '<div class="carousel-empty" style="color: var(--cinza-texto); padding: 28px;">Nenhum destaque publicitario disponivel.</div>';
     renderCarouselIndicators([]);
     return;
   }
 
-  container.innerHTML = items.map(item => `
+  container.innerHTML = carouselItems.map((item) => `
     <article class="carousel-slide">
       <picture class="carousel-picture">
         ${item.imageMobile ? `<source media="(max-width: 768px)" srcset="${resolveMediaPath(item.imageMobile)}">` : ''}
-        <img src="${resolveMediaPath(item.imageDesktop || item.image)}" alt="${item.title}" class="carousel-slide-img">
+        <img src="${resolveMediaPath(item.imageDesktop || item.image)}" alt="${sanitizeString(item.title || '')}" class="carousel-slide-img">
       </picture>
-      ${item.link ? `<a href="${item.link}" class="carousel-slide-link" aria-label="Abrir ${item.title || 'slide'}"></a>` : ''}
+      ${item.link ? `<a href="${sanitizeString(item.link)}" class="carousel-slide-link" aria-label="Abrir slide"></a>` : ''}
     </article>
   `).join('');
 
-  renderCarouselIndicators(items);
+  renderCarouselIndicators(carouselItems);
 }
 
 function renderCarouselIndicators(items) {
   const indicators = document.getElementById('carousel-indicators');
   if (!indicators) return;
-  if (!items || items.length === 0) {
-    indicators.innerHTML = '';
-    return;
-  }
-
-  indicators.innerHTML = items.map((item, index) => `
+  indicators.innerHTML = (items || []).map((_, index) => `
     <button type="button" class="carousel-indicator${index === 0 ? ' active' : ''}" data-index="${index}" aria-label="Ir para slide ${index + 1}"></button>
   `).join('');
 
-  indicators.querySelectorAll('.carousel-indicator').forEach(button => {
+  indicators.querySelectorAll('.carousel-indicator').forEach((button) => {
     button.addEventListener('click', () => {
-      const index = Number(button.dataset.index);
-      scrollCarouselToIndex(index);
+      scrollCarouselToIndex(Number(button.dataset.index));
     });
   });
 }
 
 function setActiveCarouselIndicator(index) {
-  const indicators = document.querySelectorAll('.carousel-indicator');
-  indicators.forEach((button, idx) => {
-    button.classList.toggle('active', idx === index);
+  document.querySelectorAll('.carousel-indicator').forEach((button, buttonIndex) => {
+    button.classList.toggle('active', buttonIndex === index);
   });
 }
 
@@ -654,16 +295,15 @@ function getActiveCarouselIndex(track) {
   const slides = Array.from(track.querySelectorAll('.carousel-slide'));
   if (!slides.length) return 0;
 
-  const trackRect = track.getBoundingClientRect();
-  const trackCenter = track.scrollLeft + track.clientWidth / 2;
+  const trackCenter = track.scrollLeft + (track.clientWidth / 2);
   let closestIndex = 0;
-  let minDistance = Infinity;
+  let smallestDistance = Number.POSITIVE_INFINITY;
 
   slides.forEach((slide, index) => {
-    const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+    const slideCenter = slide.offsetLeft + (slide.offsetWidth / 2);
     const distance = Math.abs(trackCenter - slideCenter);
-    if (distance < minDistance) {
-      minDistance = distance;
+    if (distance < smallestDistance) {
+      smallestDistance = distance;
       closestIndex = index;
     }
   });
@@ -684,107 +324,247 @@ function initCarouselAutoScroll() {
   if (!track || track.children.length <= 1) return;
 
   let paused = false;
-  let isScrolling = false;
-  const slideGap = 22;
-  const intervalMs = 5000;
+  let scrolling = false;
 
   const updateIndicator = () => {
-    const activeIndex = getActiveCarouselIndex(track);
-    setActiveCarouselIndicator(activeIndex);
+    setActiveCarouselIndicator(getActiveCarouselIndex(track));
   };
 
-  const scrollToNextSlide = () => {
-    if (isScrolling) return;
-    
+  const goToNextSlide = () => {
+    if (scrolling) return;
     const slides = Array.from(track.querySelectorAll('.carousel-slide'));
-    if (slides.length === 0) return;
+    if (!slides.length) return;
 
     const slideWidth = slides[0].offsetWidth;
-    const maxScroll = track.scrollWidth - track.clientWidth;
-    const currentScroll = track.scrollLeft;
-    
-    // Calcula a próxima posição de scroll
-    let nextScroll = currentScroll + slideWidth + slideGap;
-    
-    // Se chegou ao final, volta ao início
-    if (nextScroll >= maxScroll - 5) {
-      nextScroll = 0;
-    }
+    const next = track.scrollLeft + slideWidth + 22;
+    const max = track.scrollWidth - track.clientWidth;
 
-    isScrolling = true;
-    track.scrollTo({ 
-      left: nextScroll, 
-      behavior: 'smooth' 
+    scrolling = true;
+    track.scrollTo({
+      left: next >= max - 5 ? 0 : next,
+      behavior: 'smooth',
     });
 
-    // Aguarda o término da animação
-    setTimeout(() => {
-      isScrolling = false;
+    window.setTimeout(() => {
+      scrolling = false;
     }, 500);
   };
 
   track.addEventListener('mouseenter', () => { paused = true; });
   track.addEventListener('mouseleave', () => { paused = false; });
-  track.addEventListener('scroll', () => { requestAnimationFrame(updateIndicator); }, { passive: true });
+  track.addEventListener('scroll', () => requestAnimationFrame(updateIndicator), { passive: true });
 
-  // Auto scroll a cada intervalo
-  setInterval(() => {
-    if (!paused && !isScrolling) {
-      scrollToNextSlide();
+  window.setInterval(() => {
+    if (!paused && !scrolling) {
+      goToNextSlide();
     }
-  }, intervalMs);
+  }, 5000);
 }
 
-// ============================================================
-// INIT GLOBAL
-// ============================================================
+function getWhatsAppOptionsFromData(data) {
+  const options = Array.isArray(data?.whatsappOptions) ? data.whatsappOptions : [];
+  const config = data?.config || {};
+
+  if (options.length) {
+    return options.map((item) => ({
+      id: item.id,
+      title: item.title || 'Loteamento',
+      description: item.description || 'Conversar no WhatsApp',
+      whatsapp: String(item.whatsapp || '').replace(/\D/g, ''),
+    })).filter((item) => item.whatsapp);
+  }
+
+  if (config.whatsapp) {
+    return [{
+      id: 'default',
+      title: 'Atendimento',
+      description: 'Conversar com a equipe.',
+      whatsapp: String(config.whatsapp).replace(/\D/g, ''),
+    }];
+  }
+
+  return [];
+}
+
+async function renderWhatsAppOptions() {
+  const body = document.getElementById('whatsapp-modal-body');
+  if (!body) return;
+
+  body.innerHTML = '<div class="whatsapp-modal-placeholder">Carregando opcoes...</div>';
+
+  try {
+    const data = await loadData();
+    const options = getWhatsAppOptionsFromData(data);
+
+    if (!options.length) {
+      body.innerHTML = '<div class="whatsapp-modal-placeholder">Nenhuma opcao de WhatsApp cadastrada.</div>';
+      return;
+    }
+
+    body.innerHTML = options.map((option) => `
+      <button type="button" class="whatsapp-option" data-whatsapp-id="${sanitizeString(String(option.id))}">
+        <div class="whatsapp-option-icon"><i class="fas fa-map-pin"></i></div>
+        <div class="whatsapp-option-text">
+          <strong>${sanitizeString(option.title)}</strong>
+          <p>${sanitizeString(option.description)}</p>
+        </div>
+      </button>
+    `).join('');
+  } catch (error) {
+    console.error(error);
+    body.innerHTML = '<div class="whatsapp-modal-placeholder">Nao foi possivel carregar as opcoes agora.</div>';
+  }
+}
+
+function closeWhatsAppModal() {
+  document.getElementById('whatsapp-modal-overlay')?.classList.remove('open');
+}
+
+async function openWhatsAppModal() {
+  await renderWhatsAppOptions();
+  document.getElementById('whatsapp-modal-overlay')?.classList.add('open');
+}
+
+async function redirectWhatsApp(optionId) {
+  const data = await loadData();
+  const options = getWhatsAppOptionsFromData(data);
+  const option = options.find((item) => String(item.id) === String(optionId)) || options[0];
+  if (!option?.whatsapp) return;
+
+  closeWhatsAppModal();
+  const message = encodeURIComponent(`Ola! Tenho interesse no loteamento ${option.title}.`);
+  window.open(`https://wa.me/${option.whatsapp}?text=${message}`, '_blank');
+}
+
+function initWhatsApp() {
+  document.querySelectorAll('.js-whatsapp').forEach((element) => {
+    element.addEventListener('click', (event) => {
+      event.preventDefault();
+      openWhatsAppModal();
+    });
+  });
+
+  document.getElementById('whatsapp-modal-close')?.addEventListener('click', closeWhatsAppModal);
+  document.getElementById('whatsapp-modal-body')?.addEventListener('click', (event) => {
+    const option = event.target.closest('[data-whatsapp-id]');
+    if (!option) return;
+    redirectWhatsApp(option.dataset.whatsappId);
+  });
+
+  document.addEventListener('click', (event) => {
+    const overlay = document.getElementById('whatsapp-modal-overlay');
+    if (overlay && event.target === overlay) {
+      closeWhatsAppModal();
+    }
+  });
+}
+
+async function simulateEmailSend(data) {
+  const response = await fetch('https://formspree.io/f/mzdybvyd', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Falha no envio: ${response.status}`);
+  }
+}
+
+function initForms() {
+  document.querySelectorAll('.js-contact-form').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      const originalText = button?.textContent || '';
+
+      if (button) {
+        button.textContent = 'Enviando...';
+        button.disabled = true;
+      }
+
+      try {
+        await simulateEmailSend(Object.fromEntries(new FormData(form)));
+        form.reset();
+        showToast('Mensagem enviada com sucesso.', 'success');
+      } catch (error) {
+        console.error(error);
+        showToast('Nao foi possivel enviar a mensagem.', 'error');
+      } finally {
+        if (button) {
+          button.textContent = originalText;
+          button.disabled = false;
+        }
+      }
+    });
+  });
+}
+
+function applyDynamicConfig(config) {
+  if (!config) return;
+
+  document.querySelectorAll('.js-telefone').forEach((element) => {
+    element.textContent = config.telefone || element.textContent;
+    if (element.tagName === 'A' && config.telefone) {
+      element.setAttribute('href', `tel:${String(config.telefone).replace(/\D/g, '')}`);
+    }
+  });
+
+  document.querySelectorAll('.js-email').forEach((element) => {
+    element.textContent = config.email || element.textContent;
+    if (element.tagName === 'A' && config.email) {
+      element.setAttribute('href', `mailto:${config.email}`);
+    }
+  });
+
+  document.querySelectorAll('.js-endereco').forEach((element) => {
+    element.textContent = config.endereco || element.textContent;
+  });
+
+  const heroTitle = document.querySelector('.hero-title');
+  if (heroTitle && config.heroChamada) {
+    heroTitle.innerHTML = sanitizeHtml(config.heroChamada.replace(/\n/g, '<br>'));
+  }
+
+  const heroSubtitle = document.querySelector('.hero-sub');
+  if (heroSubtitle && config.heroSubtitulo) {
+    heroSubtitle.textContent = config.heroSubtitulo;
+  }
+
+  const mapFrame = document.querySelector('.map-embed iframe');
+  if (mapFrame && config.googleMapsEmbed) {
+    mapFrame.src = config.googleMapsEmbed;
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Inicializa otimizações de performance primeiro
   preloadCriticalResources();
   optimizeImages();
   initScrollOptimization();
   initLazyLoading();
-
   initHeader();
   initWhatsApp();
   initForms();
 
-  // Carrega dados
-  const dados = await loadData();
+  try {
+    const data = await loadData();
+    applyDynamicConfig(data.config || {});
 
-  // Home - vitrine destaques
-  const vitrineGrid = document.getElementById('vitrine-imoveis');
-  if (vitrineGrid && dados) {
-    renderImoveisDestaque(dados.imoveis, vitrineGrid);
-  }
-
-  // Carrossel de destaques publicitários
-  const carouselTrack = document.getElementById('carousel-track');
-  if (carouselTrack && dados) {
-    renderCarousel(carouselTrack, dados.carousel);
+    renderImoveisDestaque(data.imoveis || [], document.getElementById('vitrine-imoveis'));
+    renderCarousel(document.getElementById('carousel-track'), data.carousel || []);
+    renderDiferenciais(document.getElementById('dif-grid'));
+    renderHomeAbout(data.about || {});
     initCarouselAutoScroll();
+  } catch (error) {
+    console.error('[main] Falha ao carregar dados do Supabase', error);
+    const homeGrid = document.getElementById('vitrine-imoveis');
+    if (homeGrid) {
+      homeGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 48px; color: var(--cinza-texto);">Nao foi possivel carregar os imoveis agora.</div>';
+    }
   }
 
-  // Diferenciais
-  const difGrid = document.getElementById('dif-grid');
-  if (difGrid) renderDiferenciais(difGrid);
-
-  // Resumo do Sobre na home
-  const homeAboutSection = document.getElementById('home-about');
-  if (homeAboutSection && dados) {
-    renderHomeAbout(dados.about || {});
-  }
-
-  // Config dinâmica (WhatsApp, telefone, etc.)
-  if (dados) {
-    const { config } = dados;
-    // Nota: O WhatsApp agora é controlado pelo modal, veja openWhatsAppModal() e redirectWhatsApp()
-    document.querySelectorAll('.js-telefone').forEach(el => el.textContent = config.telefone);
-    document.querySelectorAll('.js-email').forEach(el => el.textContent = config.email);
-    document.querySelectorAll('.js-endereco').forEach(el => el.textContent = config.endereco);
-  }
-
-  // Inicia animações por último (após DOM pronto)
-  setTimeout(initAnimations, 100);
+  window.setTimeout(initAnimations, 100);
 });

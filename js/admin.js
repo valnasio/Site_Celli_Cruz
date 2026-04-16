@@ -1,60 +1,111 @@
 /**
- * CELLI CRUZ - JavaScript Admin
- * Arquivo: js/admin.js
- * Gerencia: CRUD de imóveis, configurações, preview em tempo real
- *
- * NOTA: Este sistema usa JSON local para demonstração.
- * Para produção, implemente um backend (PHP/Node/Python) que
- * salve os dados no servidor/banco de dados.
- * Ver seção "INTEGRAÇÃO COM BACKEND" no final deste arquivo.
+ * Admin runtime backed by Supabase.
  */
 
-// ============================================================
-// ESTADO DA APLICAÇÃO
-// ============================================================
+let appData = {
+  config: {},
+  about: {},
+  imoveis: [],
+  carousel: [],
+  whatsappOptions: [],
+  adminUsers: [],
+};
 
-let appData = { config: {}, imoveis: [], carousel: [], adminUsers: [], whatsappOptions: [] };
-let editingId = null;
-let carouselEditingId = null;
-let userEditingId = null;
-let editingWhatsAppOptionId = null;
+let editingImovelId = null;
+let editingCarouselId = null;
+let editingUserId = null;
+let whatsappEditingId = null;
+let plantaDrafts = [];
+let comodoDrafts = [];
 
-// ============================================================
-// CARREGAR DADOS
-// ============================================================
+window.appData = appData;
 
-async function loadAdminData() {
-  try {
-    const res = await fetch('../data/imoveis.json?t=' + Date.now());
-    appData = await res.json();
-    appData.carousel = appData.carousel || [];
-    appData.adminUsers = appData.adminUsers || [];
-    appData.whatsappOptions = appData.whatsappOptions || [];
-    appData.about = appData.about || {
-      aboutTitle: 'Quem somos',
-      aboutSubtitle: 'A Celli Cruz conecta sua família ao melhor imóvel.',
-      aboutDescription: 'A Celli Cruz Assessoria Imobiliária atua em Feira de Santana com foco em transparência, atendimento personalizado e soluções completas para compra e venda de imóveis.',
-      aboutMissionTitle: 'Nossa missão',
-      aboutMissionText: 'Promover oportunidades de moradia com segurança, qualidade e compromisso com o cliente. Cada projeto é pensado para ser um novo lar, com atenção ao detalhe e experiência humana.'
-    };
-    renderDashboard();
-    renderTable();
-    renderCarouselTable();
-    renderAdminUsersTable();
-  } catch (e) {
-    showAdminToast('Erro ao carregar dados. Verifique o arquivo JSON.', 'error');
-  }
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 
-// ============================================================
-// DASHBOARD - ESTATÍSTICAS
-// ============================================================
+async function loadSiteSnapshot(force = false) {
+  if (typeof window.fetchSiteData !== 'function') {
+    throw new Error('Camada de dados do Supabase nao foi carregada.');
+  }
+  return window.fetchSiteData({ force });
+}
+
+function setAppData(nextData) {
+  appData = nextData;
+  window.appData = appData;
+}
+
+function getClient() {
+  if (!window.supabaseClient) {
+    throw new Error('Supabase client nao inicializado.');
+  }
+  return window.supabaseClient;
+}
+
+function resolveAdminMediaPath(src) {
+  return typeof window.resolveSupabaseAssetUrl === 'function'
+    ? window.resolveSupabaseAssetUrl(src)
+    : src;
+}
+
+function escapeHtml(value) {
+  if (typeof value !== 'string') return '';
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showAdminToast(message, type = 'success') {
+  let toast = document.getElementById('admin-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'admin-toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+
+  toast.className = `toast ${type}`;
+  toast.innerHTML = message;
+  toast.classList.add('show');
+  window.setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+async function loadAdminData() {
+  const [siteSnapshot, usersPayload] = await Promise.all([
+    loadSiteSnapshot(true),
+    window.adminApiRequest('/api/admin/users'),
+  ]);
+
+  setAppData({
+    ...siteSnapshot,
+    adminUsers: usersPayload.users || [],
+  });
+
+  renderDashboard();
+  renderTable(document.getElementById('search-imovel')?.value || '');
+  renderCarouselTable();
+  renderAdminUsersTable();
+  renderWhatsAppOptionsList();
+  loadConfigForm();
+}
+
+function setEl(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
+}
 
 function renderDashboard() {
   const total = appData.imoveis.length;
-  const destaques = appData.imoveis.filter(i => i.destaque).length;
-  const lancamentos = appData.imoveis.filter(i => i.status === 'Lançamento').length;
-  const prontos = appData.imoveis.filter(i => i.status === 'Pronto para Morar').length;
+  const destaques = appData.imoveis.filter((item) => item.destaque).length;
+  const lancamentos = appData.imoveis.filter((item) => normalizeText(item.status) === 'lancamento').length;
+  const prontos = appData.imoveis.filter((item) => normalizeText(item.status) === 'pronto para morar').length;
 
   setEl('stat-total', total);
   setEl('stat-destaques', destaques);
@@ -62,195 +113,70 @@ function renderDashboard() {
   setEl('stat-prontos', prontos);
 }
 
-function setEl(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
+function badgeClass(status) {
+  const normalized = normalizeText(status);
+  if (normalized === 'lancamento') return 'badge-lancamento';
+  if (normalized === 'em obras') return 'badge-obras';
+  return 'badge-pronto';
 }
-
-function getAdminBasePath() {
-  return window.location.pathname.includes('/pages/') ? '../' : './';
-}
-
-function getAdminApiPath(endpoint) {
-  return getAdminBasePath() + 'api/' + endpoint;
-}
-
-function resolveAdminMediaPath(src) {
-  if (!src) return src;
-  if (/^(https?:)?\/\//i.test(src) || src.startsWith('data:') || src.startsWith('/')) return src;
-  return '../' + src;
-}
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-async function uploadImageFile(file) {
-  const endpoint = '/api/upload';
-  const formData = new FormData();
-  formData.append('file', file);
-
-  try {
-    console.log('🔄 Iniciando upload de:', file.name, '(', (file.size / 1024).toFixed(2), 'KB)');
-    console.log('📍 Acessando:', window.location.origin + endpoint);
-    
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      body: formData
-    });
-
-    console.log('📡 Resposta do servidor:', res.status, res.statusText);
-
-    if (!res.ok) {
-      const errorBody = await res.text();
-      console.error('❌ Erro no upload:', errorBody);
-      
-      // Se não estiver usando localhost:8000, informar
-      const hint = window.location.port !== '8000' ? 
-        '\n\n💡 Dica: Certifique-se de acessar http://localhost:8000/pages/admin.html (não 5500)' : '';
-      
-      throw new Error(`HTTP ${res.status}: ${res.statusText}${hint}`);
-    }
-
-    const json = await res.json();
-    console.log('✅ Upload bem-sucedido:', json);
-    
-    if (json.ok && json.path) {
-      return json.path;
-    }
-
-    throw new Error(json.error || 'Upload retornou erro desconhecido');
-  } catch (error) {
-    console.error('❌ Falha ao fazer upload:', error.message);
-    showAdminToast(`<i class="fas fa-circle-exclamation"></i> Upload falhou: ${error.message}`, 'error');
-    throw error;
-  }
-}
-
-async function resolveImageFieldValue(form, fieldName) {
-  const source = form.querySelector(`[name="${fieldName}Source"]:checked`)?.value || 'url';
-  const existing = form.querySelector(`[name="${fieldName}Existing"]`)?.value.trim() || '';
-
-  if (source === 'url') {
-    const url = form.querySelector(`[name="${fieldName}Url"]`)?.value.trim();
-    if (url) return { value: url, source };
-    if (existing) return { value: existing, source };
-    throw new Error('Informe a URL da imagem.');
-  }
-
-  const fileInput = form.querySelector(`[name="${fieldName}File"]`);
-  if (!fileInput) throw new Error('Campo de upload não encontrado.');
-
-  const file = fileInput.files[0];
-  if (file) {
-    const path = await uploadImageFile(file);
-    return { value: path, source };
-  }
-
-  if (existing) return { value: existing, source };
-  throw new Error('Selecione um arquivo de imagem ou mantenha a imagem atual.');
-}
-
-function updateImageSourceFields(form, fieldName) {
-  const mode = form.querySelector(`[name="${fieldName}Source"]:checked`)?.value || 'url';
-  const urlGroup = form.querySelector(`.image-${fieldName}-url`);
-  const uploadGroup = form.querySelector(`.image-${fieldName}-upload`);
-  if (urlGroup) urlGroup.style.display = mode === 'url' ? 'block' : 'none';
-  if (uploadGroup) uploadGroup.style.display = mode === 'upload' ? 'block' : 'none';
-}
-
-function initImageSourceToggles() {
-  const forms = [document.getElementById('form-imovel'), document.getElementById('form-carousel-item')];
-  forms.forEach(form => {
-    if (!form) return;
-    ['imagem', 'image', 'imageMobile'].forEach(fieldName => {
-      form.querySelectorAll(`[name="${fieldName}Source"]`).forEach(radio => {
-        radio.addEventListener('change', () => updateImageSourceFields(form, fieldName));
-      });
-      updateImageSourceFields(form, fieldName);
-    });
-  });
-}
-
-// ============================================================
-// TABELA DE IMÓVEIS
-// ============================================================
 
 function renderTable(filter = '') {
   const tbody = document.getElementById('imoveis-tbody');
   if (!tbody) return;
 
-  let lista = appData.imoveis;
-  if (filter) {
-    const f = filter.toLowerCase();
-    lista = lista.filter(i =>
-      i.nome.toLowerCase().includes(f) ||
-      i.bairro.toLowerCase().includes(f) ||
-      i.status.toLowerCase().includes(f)
-    );
-  }
+  const search = String(filter || '').trim().toLowerCase();
+  const rows = appData.imoveis.filter((item) => {
+    if (!search) return true;
+    return [item.nome, item.bairro, item.status]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(search));
+  });
 
-  if (lista.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum imóvel encontrado.</td></tr>`;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum imovel encontrado.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = lista.map(imovel => `
+  tbody.innerHTML = rows.map((imovel) => `
     <tr>
       <td>${imovel.id}</td>
-      <td><img src="${resolveAdminMediaPath(imovel.imagem)}" class="imovel-thumb" alt="" onerror="this.src='https://via.placeholder.com/56x42?text=Sem+foto'"></td>
+      <td><img src="${resolveAdminMediaPath(imovel.imagem)}" class="imovel-thumb" alt="${escapeHtml(imovel.nome || '')}"></td>
       <td>
-        <strong>${imovel.nome}</strong><br>
-        <span style="font-size: 12px; color: var(--cinza-texto)">${imovel.bairro}</span>
+        <strong>${escapeHtml(imovel.nome || '')}</strong><br>
+        <span style="font-size: 12px; color: var(--cinza-texto)">${escapeHtml(imovel.bairro || '')}</span>
       </td>
-      <td>${imovel.quartos} quartos · ${imovel.metragem} m²</td>
-      <td><span class="badge ${badgeClass(imovel.status)}">${imovel.status}</span></td>
-      <td>
-        <span style="font-size: 18px">${imovel.destaque ? '⭐' : '—'}</span>
-      </td>
+      <td>${escapeHtml(String(imovel.quartos || ''))} quartos · ${escapeHtml(imovel.metragem || '-')} m2</td>
+      <td><span class="badge ${badgeClass(imovel.status)}">${escapeHtml(imovel.status || '')}</span></td>
+      <td>${imovel.destaque ? 'Sim' : 'Nao'}</td>
       <td>
         <div class="action-btns">
-          <button class="btn-icon btn-edit" title="Editar" onclick="openEdit(${imovel.id})"><i class="fas fa-pen"></i></button>
-          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDelete(${imovel.id})"><i class="fas fa-trash-alt"></i></button>
+          <button class="btn-icon btn-edit" data-action="edit-imovel" data-id="${imovel.id}" title="Editar"><i class="fas fa-pen"></i></button>
+          <button class="btn-icon btn-delete" data-action="delete-imovel" data-id="${imovel.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
         </div>
       </td>
     </tr>
   `).join('');
 }
 
-function renderCarouselTable(filter = '') {
+function renderCarouselTable() {
   const tbody = document.getElementById('carousel-tbody');
   if (!tbody) return;
 
-  let lista = appData.carousel || [];
-  if (filter) {
-    const f = filter.toLowerCase();
-    lista = lista.filter(item =>
-      item.title.toLowerCase().includes(f) ||
-      (item.subtitle || '').toLowerCase().includes(f)
-    );
-  }
-
-  if (lista.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum slide encontrado.</td></tr>`;
+  if (!appData.carousel.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum slide encontrado.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = lista.map(item => `
+  tbody.innerHTML = appData.carousel.map((item) => `
     <tr>
       <td>${item.id}</td>
-      <td><img src="${resolveAdminMediaPath(item.image)}" class="imovel-thumb" alt="" onerror="this.src='https://via.placeholder.com/56x42?text=Sem+foto'"></td>
-      <td>${item.title}</td>
-      <td>${item.subtitle || ''}</td>
+      <td><img src="${resolveAdminMediaPath(item.imageDesktop || item.image)}" class="imovel-thumb" alt="${escapeHtml(item.title || '')}"></td>
+      <td>${escapeHtml(item.title || '')}</td>
+      <td>${escapeHtml(item.subtitle || '')}</td>
       <td>
         <div class="action-btns">
-          <button class="btn-icon btn-edit" title="Editar" onclick="openCarouselModal(${item.id})"><i class="fas fa-pen"></i></button>
-          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDeleteCarouselItem(${item.id})"><i class="fas fa-trash-alt"></i></button>
+          <button class="btn-icon btn-edit" data-action="edit-carousel" data-id="${item.id}" title="Editar"><i class="fas fa-pen"></i></button>
+          <button class="btn-icon btn-delete" data-action="delete-carousel" data-id="${item.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
         </div>
       </td>
     </tr>
@@ -261,1065 +187,1035 @@ function renderAdminUsersTable() {
   const tbody = document.getElementById('admin-users-tbody');
   if (!tbody) return;
 
-  const lista = appData.adminUsers || [];
-  if (lista.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum usuário cadastrado.</td></tr>`;
+  if (!appData.adminUsers.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum usuario administrador encontrado.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = lista.map(user => `
+  tbody.innerHTML = appData.adminUsers.map((user) => `
     <tr>
-      <td>${user.id}</td>
-      <td>${user.username}</td>
-      <td>${user.name || '—'}</td>
+      <td>${escapeHtml(user.id)}</td>
+      <td>${escapeHtml(user.email || '')}</td>
+      <td>${escapeHtml(user.name || '-')}</td>
       <td>
         <div class="action-btns">
-          <button class="btn-icon btn-edit" title="Editar" onclick="openUserModal(${user.id})"><i class="fas fa-pen"></i></button>
-          <button class="btn-icon btn-delete" title="Excluir" onclick="confirmDeleteUser(${user.id})"><i class="fas fa-trash-alt"></i></button>
+          <button class="btn-icon btn-edit" data-action="edit-user" data-id="${escapeHtml(user.id)}" title="Editar"><i class="fas fa-pen"></i></button>
+          <button class="btn-icon btn-delete" data-action="delete-user" data-id="${escapeHtml(user.id)}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
         </div>
       </td>
     </tr>
   `).join('');
 }
 
-function badgeClass(status) {
-  if (status === 'Lançamento') return 'badge-lancamento';
-  if (status === 'Em Obras') return 'badge-obras';
-  return 'badge-pronto';
-}
-
-// ============================================================
-// BUSCA
-// ============================================================
-
-document.addEventListener('DOMContentLoaded', () => {
-  const search = document.getElementById('search-imovel');
-  if (search) {
-    search.addEventListener('input', () => renderTable(search.value));
-  }
-  initImageSourceToggles();
-});
-
-// ============================================================
-// MODAL - ABRIR/FECHAR
-// ============================================================
-
-function openModal(titulo, imovel = null) {
-  editingId = imovel ? imovel.id : null;
-
-  document.getElementById('modal-titulo').textContent = titulo;
-  document.getElementById('modal-overlay').classList.add('open');
-
-  // Preenche form
-  const f = document.getElementById('form-imovel');
-  if (imovel) {
-    f.querySelector('[name="nome"]').value = imovel.nome || '';
-    f.querySelector('[name="bairro"]').value = imovel.bairro || '';
-    f.querySelector('[name="cidade"]').value = imovel.cidade || '';
-    f.querySelector('[name="quartos"]').value = imovel.quartos || 2;
-    f.querySelector('[name="metragem"]').value = imovel.metragem || '';
-    f.querySelector('[name="descricao"]').value = imovel.descricao || '';
-    f.querySelector('[name="tag"]').value = imovel.tag || 'Lançamento';
-    f.querySelector('[name="status"]').value = imovel.status || 'Lançamento';
-    const imageSource = imovel.imagemSource || (/^(https?:)?\/\//i.test(imovel.imagem) ? 'url' : 'upload');
-    const imagemSourceInput = f.querySelector(`[name="imagemSource"][value="${imageSource}"]`);
-    if (imagemSourceInput) imagemSourceInput.checked = true;
-    f.querySelector('[name="imagemUrl"]').value = imageSource === 'url' ? (imovel.imagem || '') : '';
-    f.querySelector('[name="imagemExisting"]').value = imovel.imagem || '';
-    f.querySelector('[name="imagemFile"]').value = '';
-    updateImageSourceFields(f, 'imagem');
-    f.querySelector('[name="localizacao"]').value = imovel.localizacao || '';
-    f.querySelector('[name="mapsLink"]').value = imovel.mapsLink || '';
-    f.querySelector('[name="destaque"]').checked = imovel.destaque || false;
-    f.querySelector('[name="diferenciais"]').value = (imovel.diferenciais || []).join(', ');
-    
-    // Carregar cômodos
-    const comodosList = document.getElementById('comodos-list');
-    if (comodosList) {
-      comodosList.innerHTML = '';
-      (imovel.comodos || []).forEach(comodo => {
-        renderComodoForm(comodo);
-      });
-    }
-  } else {
-    f.reset();
-    updateImageSourceFields(f, 'imagem');
-    const comodosList = document.getElementById('comodos-list');
-    if (comodosList) comodosList.innerHTML = '';
-  }
-
-  updatePreview();
-}
-
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-  editingId = null;
-}
-
-function openNovo() {
-  openModal('Novo Imóvel');
-}
-
-function openEdit(id) {
-  const imovel = appData.imoveis.find(i => i.id === id);
-  if (imovel) openModal('Editar Imóvel', imovel);
-}
-
-function openCarouselModal(id = null) {
-  carouselEditingId = id;
-  const titulo = id ? 'Editar Slide' : 'Novo Slide';
-  document.getElementById('modal-carousel-title').textContent = titulo;
-  document.getElementById('modal-carousel-overlay').classList.add('open');
-
-  const form = document.getElementById('form-carousel-item');
-  if (!form) return;
-
-  if (id) {
-    const item = appData.carousel.find(c => c.id === id);
-    if (item) {
-      form.querySelector('[name="title"]').value = item.title || '';
-      form.querySelector('[name="subtitle"]').value = item.subtitle || '';
-      
-      // Desktop image
-      const imageDesktopOrImage = item.imageDesktop || item.image;
-      const imageSource = item.imageSource || (/^(https?:)?\/\//i.test(imageDesktopOrImage) ? 'url' : 'upload');
-      const imageSourceInput = form.querySelector(`[name="imageSource"][value="${imageSource}"]`);
-      if (imageSourceInput) imageSourceInput.checked = true;
-      form.querySelector('[name="imageUrl"]').value = imageSource === 'url' ? (imageDesktopOrImage || '') : '';
-      form.querySelector('[name="imageExisting"]').value = imageDesktopOrImage || '';
-      form.querySelector('[name="imageFile"]').value = '';
-      updateImageSourceFields(form, 'image');
-      
-      // Mobile image
-      const imageMobileSource = item.imageMobileSource || (/^(https?:)?\/\//i.test(item.imageMobile) ? 'url' : 'upload');
-      const imageMobileSourceInput = form.querySelector(`[name="imageMobileSource"][value="${imageMobileSource}"]`);
-      if (imageMobileSourceInput) imageMobileSourceInput.checked = true;
-      form.querySelector('[name="imageMobileUrl"]').value = imageMobileSource === 'url' ? (item.imageMobile || '') : '';
-      form.querySelector('[name="imageMobileExisting"]').value = item.imageMobile || '';
-      form.querySelector('[name="imageMobileFile"]').value = '';
-      updateImageSourceFields(form, 'imageMobile');
-      
-      form.querySelector('[name="link"]').value = item.link || '';
-    }
-  } else {
-    form.reset();
-    updateImageSourceFields(form, 'image');
-    updateImageSourceFields(form, 'imageMobile');
-  }
-}
-
-function closeCarouselModal() {
-  document.getElementById('modal-carousel-overlay').classList.remove('open');
-  carouselEditingId = null;
-}
-
-function openNewCarouselItem() {
-  openCarouselModal(null);
-}
-
-function openUserModal(id = null) {
-  userEditingId = id;
-  const titulo = id ? 'Editar Usuário' : 'Novo Usuário';
-  document.getElementById('modal-user-title').textContent = titulo;
-  document.getElementById('modal-user-overlay').classList.add('open');
-
-  const form = document.getElementById('form-user-item');
-  if (!form) return;
-
-  if (id) {
-    const user = appData.adminUsers.find(u => u.id === id);
-    if (user) {
-      form.querySelector('[name="name"]').value = user.name || '';
-      form.querySelector('[name="username"]').value = user.username || '';
-      form.querySelector('[name="password"]').value = '';
-      form.querySelector('[name="passwordConfirm"]').value = '';
-    }
-  } else {
-    form.reset();
-  }
-}
-
-function closeUserModal() {
-  document.getElementById('modal-user-overlay').classList.remove('open');
-  userEditingId = null;
-}
-
-async function saveCarouselItem() {
-  const form = document.getElementById('form-carousel-item');
-  if (!form) return;
-
-  const title = form.querySelector('[name="title"]').value.trim();
-  if (!title) { showAdminToast('<i class="fas fa-exclamation-triangle"></i> Título é obrigatório.', 'error'); return; }
-
-  let imageDesktopResult;
-  try {
-    imageDesktopResult = await resolveImageFieldValue(form, 'image');
-  } catch (error) {
-    showAdminToast(error.message, 'error');
-    return;
-  }
-
-  let imageMobileResult = { value: '', source: 'url' };
-  try {
-    const mobileImageInput = form.querySelector('[name="imageMobileFile"]');
-    const mobileImageUrl = form.querySelector('[name="imageMobileUrl"]');
-    const imageMobileSource = form.querySelector('[name="imageMobileSource"]:checked')?.value || 'url';
-    
-    if ((imageMobileSource === 'upload' && mobileImageInput?.files?.length) || 
-        (imageMobileSource === 'url' && mobileImageUrl?.value?.trim())) {
-      imageMobileResult = await resolveImageFieldValue(form, 'imageMobile');
-    }
-  } catch (error) {
-    // Mobile image é opcional, então não mostra erro
-  }
-
-  const item = {
-    id: carouselEditingId || (Math.max(0, ...(appData.carousel || []).map(c => c.id)) + 1),
-    title,
-    subtitle: form.querySelector('[name="subtitle"]').value.trim(),
-    imageDesktop: imageDesktopResult.value,
-    image: imageDesktopResult.value,
-    imageSource: imageDesktopResult.source,
-    imageMobile: imageMobileResult.value || undefined,
-    imageMobileSource: imageMobileResult.source,
-    link: form.querySelector('[name="link"]').value.trim()
-  };
-
-  if (carouselEditingId) {
-    const index = appData.carousel.findIndex(c => c.id === carouselEditingId);
-    if (index > -1) {
-      appData.carousel[index] = { ...appData.carousel[index], ...item };
-    }
-  } else {
-    appData.carousel = appData.carousel || [];
-    appData.carousel.push(item);
-  }
-
-  saveData();
-  renderCarouselTable();
-  closeCarouselModal();
-  showAdminToast(carouselEditingId ? '<i class="fas fa-check"></i> Slide atualizado com sucesso!' : '<i class="fas fa-check"></i> Slide criado com sucesso!');
-}
-
-async function saveUser() {
-  const form = document.getElementById('form-user-item');
-  if (!form) return;
-
-  const name = form.querySelector('[name="name"]').value.trim();
-  const username = form.querySelector('[name="username"]').value.trim();
-  const password = form.querySelector('[name="password"]').value;
-  const passwordConfirm = form.querySelector('[name="passwordConfirm"]').value;
-
-  if (!name || !username) {
-    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Nome e usuário são obrigatórios.', 'error');
-    return;
-  }
-
-  if (!userEditingId && !password) {
-    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Informe uma senha para o novo usuário.', 'error');
-    return;
-  }
-
-  if (password && password !== passwordConfirm) {
-    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Senhas não conferem.', 'error');
-    return;
-  }
-
-  const existing = appData.adminUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.id !== userEditingId);
-  if (existing) {
-    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Este usuário já existe.', 'error');
-    return;
-  }
-
-  const id = userEditingId || (Math.max(0, ...(appData.adminUsers || []).map(u => u.id)) + 1);
-  const user = {
-    id,
-    name,
-    username
-  };
-
-  if (password) {
-    const salt = generateSalt();
-    const passwordHash = await hashPassword(password, salt);
-    user.salt = salt;
-    user.passwordHash = passwordHash;
-  }
-
-  if (userEditingId) {
-    const index = appData.adminUsers.findIndex(u => u.id === userEditingId);
-    if (index > -1) {
-      appData.adminUsers[index] = {
-        ...appData.adminUsers[index],
-        ...user,
-        salt: user.salt || appData.adminUsers[index].salt,
-        passwordHash: user.passwordHash || appData.adminUsers[index].passwordHash
-      };
-    }
-  } else {
-    appData.adminUsers = appData.adminUsers || [];
-    appData.adminUsers.push(user);
-  }
-
-  saveData();
-  renderAdminUsersTable();
-  closeUserModal();
-  showAdminToast(userEditingId ? '<i class="fas fa-check"></i> Usuário atualizado com sucesso!' : '<i class="fas fa-check"></i> Usuário criado com sucesso!');
-}
-
-function confirmDeleteUser(id) {
-  const user = appData.adminUsers.find(u => u.id === id);
-  if (!user) return;
-
-  if (confirm(`Tem certeza que deseja excluir o usuário "${user.username}"?`)) {
-    appData.adminUsers = appData.adminUsers.filter(u => u.id !== id);
-    saveData();
-    renderAdminUsersTable();
-    showAdminToast('<i class="fas fa-trash-alt"></i> Usuário excluído com sucesso.');
-  }
-}
-
-function confirmDeleteCarouselItem(id) {
-  const item = appData.carousel.find(c => c.id === id);
-  if (!item) return;
-
-  if (confirm(`Tem certeza que deseja excluir o slide "${item.title}"?`)) {
-    appData.carousel = appData.carousel.filter(c => c.id !== id);
-    saveData();
-    renderCarouselTable();
-    showAdminToast('<i class="fas fa-trash-alt"></i> Slide excluído com sucesso.');
-  }
-}
-
-// Fechar ao clicar fora
-document.addEventListener('DOMContentLoaded', () => {
-  const overlay = document.getElementById('modal-overlay');
-  if (overlay) {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-  }
-
-  const carouselOverlay = document.getElementById('modal-carousel-overlay');
-  if (carouselOverlay) {
-    carouselOverlay.addEventListener('click', (e) => {
-      if (e.target === carouselOverlay) closeCarouselModal();
-    });
-  }
-});
-
-// ============================================================
-// PREVIEW EM TEMPO REAL
-// ============================================================
-
-function updatePreview() {
-  const f = document.getElementById('form-imovel');
-  if (!f) return;
-
-  const nome = f.querySelector('[name="nome"]').value || 'Nome do Imóvel';
-  const bairro = f.querySelector('[name="bairro"]').value || 'Bairro';
-  const quartos = f.querySelector('[name="quartos"]').value || '2';
-  const metragem = f.querySelector('[name="metragem"]').value || '0';
-  const imageSource = f.querySelector('[name="imagemSource"]:checked')?.value || 'url';
-  let imagem = '';
-
-  if (imageSource === 'upload') {
-    const fileInput = f.querySelector('[name="imagemFile"]');
-    const file = fileInput?.files[0];
-    if (file) {
-      imagem = URL.createObjectURL(file);
-    } else {
-      imagem = f.querySelector('[name="imagemExisting"]')?.value || '';
-    }
-  } else {
-    imagem = f.querySelector('[name="imagemUrl"]')?.value || f.querySelector('[name="imagemExisting"]')?.value || '';
-  }
-
-  if (imagem && !/^(https?:)?\/\//i.test(imagem) && !imagem.startsWith('data:') && !imagem.startsWith('/')) {
-    imagem = resolveAdminMediaPath(imagem);
-  }
-
-  if (!imagem) {
-    imagem = 'https://via.placeholder.com/400x200?text=Sem+imagem';
-  }
-
-  const tag = f.querySelector('[name="tag"]').value || 'Lançamento';
-  const descricao = f.querySelector('[name="descricao"]').value || '';
-  const destaque = f.querySelector('[name="destaque"]').checked;
-
-  const prev = document.getElementById('card-preview');
-  if (!prev) return;
-
-  prev.innerHTML = `
-    <div style="border-radius: 10px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.1); background: white; max-width: 360px;">
-      <div style="position: relative; height: 180px; overflow: hidden;">
-        <img src="${imagem}" style="width:100%; height:100%; object-fit:cover;" 
-          onerror="this.src='https://via.placeholder.com/400x200?text=URL+inválida'">
-        <span style="position:absolute; top:10px; left:10px; background:#c0392b; color:white; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; text-transform:uppercase;">${tag}</span>
-        ${destaque ? '<span style="position:absolute; top:10px; right:10px; font-size:18px;">⭐</span>' : ''}
-      </div>
-      <div style="padding: 16px;">
-        <p style="font-size:11px; color:#c0392b; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">Feira de Santana - Bahia</p>
-        <h3 style="font-family: serif; font-size: 18px; color: #1a2a3a; margin-bottom: 10px;">${nome}</h3>
-        <p style="font-size: 13px; color: #6b7280; margin-bottom: 12px; line-height: 1.5;">${descricao.slice(0, 100)}${descricao.length > 100 ? '...' : ''}</p>
-        <div style="display:flex; gap:16px; padding:10px 0; border-top:1px solid #e5e8ec;">
-          <span style="font-size:13px; color:#6b7280;"><i class="fas fa-bed"></i> ${quartos} Quartos</span>
-          <span style="font-size:13px; color:#6b7280;"><i class="fas fa-ruler"></i> ${metragem} m²</span>
-        </div>
-        <p style="font-size:12px; color:#6b7280; margin-top:8px;"><i class="fas fa-map-pin"></i> ${bairro}</p>
-      </div>
-    </div>
-  `;
-}
-
-// Atualiza preview ao digitar
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('form-imovel');
-  if (form) {
-    form.addEventListener('input', updatePreview);
-    form.addEventListener('change', updatePreview);
-  }
-});
-
-// ============================================================
-// SALVAR IMÓVEL (CRUD)
-// ============================================================
-
-async function salvarImovel() {
-  const f = document.getElementById('form-imovel');
-  if (!f) return;
-
-  // Validação básica
-  const nome = f.querySelector('[name="nome"]').value.trim();
-  if (!nome) { showAdminToast('<i class="fas fa-exclamation-triangle"></i> O nome é obrigatório.', 'error'); return; }
-
-  let imageResult;
-  try {
-    imageResult = await resolveImageFieldValue(f, 'imagem');
-  } catch (error) {
-    showAdminToast(error.message, 'error');
-    return;
-  }
-
-  const novo = {
-    id: editingId || (Math.max(0, ...appData.imoveis.map(i => i.id)) + 1),
-    nome,
-    bairro: f.querySelector('[name="bairro"]').value.trim(),
-    cidade: f.querySelector('[name="cidade"]').value.trim() || 'Feira de Santana - Bahia',
-    quartos: parseInt(f.querySelector('[name="quartos"]').value) || 2,
-    metragem: f.querySelector('[name="metragem"]').value.trim(),
-    descricao: f.querySelector('[name="descricao"]').value.trim(),
-    tag: f.querySelector('[name="tag"]').value,
-    status: f.querySelector('[name="status"]').value,
-    imagem: imageResult.value,
-    imagemSource: imageResult.source,
-    imagemGaleria: [imageResult.value],
-    localizacao: f.querySelector('[name="localizacao"]').value.trim(),
-    mapsLink: f.querySelector('[name="mapsLink"]').value.trim(),
-    destaque: f.querySelector('[name="destaque"]').checked,
-    diferenciais: f.querySelector('[name="diferenciais"]').value.split(',').map(s => s.trim()).filter(Boolean),
-    plantas: [],
-    comodos: coletarComodos()
-  };
-
-  if (editingId) {
-    const idx = appData.imoveis.findIndex(i => i.id === editingId);
-    if (idx > -1) {
-      // Preserva campos que não estão no form
-      appData.imoveis[idx] = { ...appData.imoveis[idx], ...novo };
-    }
-  } else {
-    appData.imoveis.push(novo);
-  }
-
-  // Salva (simulado - ver integração backend)
-  saveData();
-  closeModal();
-  renderDashboard();
-  renderTable();
-  showAdminToast(editingId ? '<i class="fas fa-check"></i> Imóvel atualizado com sucesso!' : '<i class="fas fa-check"></i> Imóvel criado com sucesso!');
-}
-
-// ============================================================
-// EXCLUIR IMÓVEL
-// ============================================================
-
-function confirmDelete(id) {
-  const imovel = appData.imoveis.find(i => i.id === id);
-  if (!imovel) return;
-
-  if (confirm(`Tem certeza que deseja excluir "${imovel.nome}"?\n\nEsta ação não pode ser desfeita.`)) {
-    appData.imoveis = appData.imoveis.filter(i => i.id !== id);
-    saveData();
-    renderDashboard();
-    renderTable();
-    showAdminToast('<i class="fas fa-trash-alt"></i> Imóvel excluído com sucesso.');
-  }
-}
-
-// ============================================================
-// SALVAR DADOS
-// ============================================================
-
-/**
- * saveData - Persiste os dados
- *
- * VERSÃO DEMO: Armazena no objeto em memória e mostra alerta
- * para o usuário copiar o JSON atualizado.
- *
- * PARA PRODUÇÃO - substituir por chamada ao backend:
- *
- * async function saveData() {
- *   const res = await fetch('/api/imoveis', {
- *     method: 'POST',
- *     headers: { 'Content-Type': 'application/json' },
- *     body: JSON.stringify(appData)
- *   });
- *   if (!res.ok) throw new Error('Erro ao salvar');
- * }
- *
- * Backend PHP simples (save.php):
- * <?php
- *   $data = file_get_contents('php://input');
- *   file_put_contents('../data/imoveis.json', $data);
- *   echo json_encode(['ok' => true]);
- * ?>
- */
-async function saveData() {
-  appData.carousel = appData.carousel || [];
-
-  try {
-    // Tenta salvar via API se disponível
-    const res = await fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(appData)
-    });
-    if (res.ok) return true;
-  } catch (e) {
-    // API não disponível - modo offline
-  }
-
-  // Fallback: mostra JSON para copiar
-  console.log('<i class="fas fa-folder"></i> Dados atualizados (copie para imoveis.json):');
-  console.log(JSON.stringify(appData, null, 2));
-  return false;
-}
-
-// ============================================================
-// SALVAR PARA SERVIDOR
-// ============================================================
-
-async function salvarParaServidor() {
-  const btn = event.target;
-  const textoOriginal = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-
-  try {
-    appData.carousel = appData.carousel || [];
-    const apiPath = '/api/save';
-    
-    console.log('Enviando dados para o servidor...', appData);
-    
-    const res = await fetch(apiPath, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(appData)
-    });
-
-    console.log('Resposta do servidor:', res.status, res.statusText);
-    
-    const responseText = await res.text();
-    console.log('Corpo da resposta:', responseText);
-    
-    let json = {};
-    if (responseText) {
-      try {
-        json = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Erro ao fazer parsing JSON:', parseError);
-      }
-    }
-
-    if (res.ok && json.ok) {
-      showAdminToast('<i class="fas fa-check"></i> Alterações salvas com sucesso!');
-      btn.innerHTML = '<i class="fas fa-check"></i> Salvo com sucesso!';
-      setTimeout(() => {
-        btn.innerHTML = textoOriginal;
-        btn.disabled = false;
-      }, 3000);
-      return;
-    }
-    
-    // Erro com mensagem do servidor
-    const errorMsg = json.error || res.statusText || 'Erro ao salvar';
-    throw new Error(errorMsg);
-  } catch (e) {
-    console.error('Erro completo:', e);
-    showAdminToast('<i class="fas fa-circle-exclamation"></i> Erro ao salvar no servidor: ' + e.message, 'error');
-    btn.innerHTML = textoOriginal;
-    btn.disabled = false;
-  }
-}
-
-// ============================================================
-// CONFIGURAÇÕES DO SITE
-// ============================================================
-
 function loadConfigForm() {
-  const f = document.getElementById('form-config');
-  if (!f || !appData.config) return;
-  const c = appData.config;
-  Object.keys(c).forEach(key => {
-    const el = f.querySelector(`[name="${key}"]`);
-    if (el) el.value = c[key];
+  const form = document.getElementById('form-config');
+  if (!form) return;
+
+  const config = appData.config || {};
+  const about = appData.about || {};
+
+  [
+    ['nomeEmpresa', config.nomeEmpresa],
+    ['telefone', config.telefone],
+    ['whatsapp', config.whatsapp],
+    ['whatsappVendas', config.whatsappVendas],
+    ['whatsappAtendimento', config.whatsappAtendimento],
+    ['email', config.email],
+    ['endereco', config.endereco],
+    ['heroChamada', config.heroChamada],
+    ['heroSubtitulo', config.heroSubtitulo],
+    ['googleMapsEmbed', config.googleMapsEmbed],
+    ['aboutTitle', about.aboutTitle],
+    ['aboutSubtitle', about.aboutSubtitle],
+    ['aboutDescription', about.aboutDescription],
+    ['aboutSummary', about.aboutSummary],
+    ['aboutMissionTitle', about.aboutMissionTitle],
+    ['aboutMissionText', about.aboutMissionText],
+  ].forEach(([name, value]) => {
+    const input = form.querySelector(`[name="${name}"]`);
+    if (input) input.value = value || '';
   });
-
-  appData.about = appData.about || {};
-  Object.keys(appData.about).forEach(key => {
-    const el = f.querySelector(`[name="${key}"]`);
-    if (el) el.value = appData.about[key];
-  });
-}
-
-function salvarConfig() {
-  const f = document.getElementById('form-config');
-  if (!f) return;
-
-  const inputs = f.querySelectorAll('input, textarea');
-  inputs.forEach(input => {
-    if (input.name.startsWith('about')) {
-      appData.about = appData.about || {};
-      appData.about[input.name] = input.value;
-    } else {
-      appData.config[input.name] = input.value;
-    }
-  });
-
-  saveData();
-  showAdminToast('<i class="fas fa-check"></i> Configurações salvas!');
-}
-
-function loadWhatsAppSection() {
-  renderWhatsAppOptionsList();
-  resetWhatsAppOptionEditor();
 }
 
 function renderWhatsAppOptionsList() {
   const tbody = document.getElementById('whatsapp-options-tbody');
   if (!tbody) return;
 
-  const options = (appData.whatsappOptions || []).slice().sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-  if (options.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum loteamento configurado. Clique em "Novo Loteamento" para adicionar.</td></tr>`;
+  if (!appData.whatsappOptions.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhuma opcao cadastrada.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = options.map(option => `
+  tbody.innerHTML = appData.whatsappOptions.map((option) => `
     <tr>
       <td>${option.id}</td>
-      <td>${option.title || 'Sem nome'}</td>
-      <td>${option.whatsapp || 'Sem número'}</td>
-      <td style="white-space: nowrap; display: flex; gap: 8px;">
-        <button type="button" class="btn btn-outline" data-action="edit-whatsapp-option" data-id="${option.id}">Editar</button>
-        <button type="button" class="btn btn-outline" data-action="delete-whatsapp-option" data-id="${option.id}" style="border-color:#ef4444; color:#ef4444;">Excluir</button>
+      <td>${escapeHtml(option.title || '')}</td>
+      <td>${escapeHtml(option.whatsapp || '')}</td>
+      <td style="white-space: nowrap;">
+        <button type="button" class="btn btn-outline" data-action="edit-whatsapp" data-id="${option.id}">Editar</button>
+        <button type="button" class="btn btn-outline" data-action="delete-whatsapp" data-id="${option.id}" style="border-color:#ef4444; color:#ef4444;">Excluir</button>
       </td>
     </tr>
   `).join('');
 }
 
-function openWhatsAppOptionEditor(option = { id: '', title: '', description: '', whatsapp: '' }) {
-  editingWhatsAppOptionId = option.id || '';
+function openWhatsAppOptionEditor(option) {
+  whatsappEditingId = option?.id || null;
   const form = document.getElementById('form-whatsapp-option');
   if (!form) return;
 
-  form.querySelector('[name="id"]').value = option.id || '';
-  form.querySelector('[name="title"]').value = option.title || '';
-  form.querySelector('[name="description"]').value = option.description || '';
-  form.querySelector('[name="whatsapp"]').value = option.whatsapp || '';
-
-  const title = document.getElementById('whatsapp-editor-title');
-  if (title) {
-    title.textContent = option.id ? 'Editar loteamento' : 'Novo loteamento';
-  }
+  form.querySelector('[name="id"]').value = option?.id || '';
+  form.querySelector('[name="title"]').value = option?.title || '';
+  form.querySelector('[name="description"]').value = option?.description || '';
+  form.querySelector('[name="whatsapp"]').value = option?.whatsapp || '';
+  document.getElementById('whatsapp-editor-title').textContent = option?.id ? 'Editar loteamento' : 'Novo loteamento';
 }
 
 function resetWhatsAppOptionEditor() {
-  openWhatsAppOptionEditor({ id: '', title: '', description: '', whatsapp: '' });
+  openWhatsAppOptionEditor(null);
 }
 
-function handleWhatsAppOptionListClick(event) {
-  const button = event.target.closest('[data-action]');
-  if (!button) return;
-  const action = button.dataset.action;
-  const optionId = button.dataset.id;
-  if (!optionId) return;
+function updateImageSourceFields(form, fieldName) {
+  const selected = form.querySelector(`[name="${fieldName}Source"]:checked`)?.value || 'url';
+  const urlGroup = form.querySelector(`.image-${fieldName}-url`);
+  const uploadGroup = form.querySelector(`.image-${fieldName}-upload`);
+  if (urlGroup) urlGroup.style.display = selected === 'url' ? 'block' : 'none';
+  if (uploadGroup) uploadGroup.style.display = selected === 'upload' ? 'block' : 'none';
+}
 
-  if (action === 'edit-whatsapp-option') {
-    const option = appData.whatsappOptions.find(item => String(item.id) === String(optionId));
-    if (option) openWhatsAppOptionEditor(option);
+function initImageSourceToggles() {
+  ['form-imovel', 'form-carousel-item'].forEach((formId) => {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    ['imagem', 'image', 'imageMobile'].forEach((fieldName) => {
+      form.querySelectorAll(`[name="${fieldName}Source"]`).forEach((radio) => {
+        radio.addEventListener('change', () => updateImageSourceFields(form, fieldName));
+      });
+      updateImageSourceFields(form, fieldName);
+    });
+  });
+}
+
+async function resolveImageFieldValue(form, fieldName, folder) {
+  const mode = form.querySelector(`[name="${fieldName}Source"]:checked`)?.value || 'url';
+  const existing = form.querySelector(`[name="${fieldName}Existing"]`)?.value.trim() || '';
+
+  if (mode === 'url') {
+    const url = form.querySelector(`[name="${fieldName}Url"]`)?.value.trim() || '';
+    if (url) return { value: url, source: 'url' };
+    if (existing) return { value: existing, source: existing.startsWith('http') ? 'url' : 'upload' };
+    throw new Error('Informe a URL da imagem.');
+  }
+
+  const file = form.querySelector(`[name="${fieldName}File"]`)?.files?.[0];
+  if (file) {
+    const value = await window.uploadSupabaseFile(file, folder);
+    return { value, source: 'upload' };
+  }
+
+  if (existing) return { value: existing, source: 'upload' };
+  throw new Error('Selecione um arquivo de imagem.');
+}
+
+function renderCardPreview() {
+  const preview = document.getElementById('card-preview');
+  const form = document.getElementById('form-imovel');
+  if (!preview || !form) return;
+
+  const nome = form.querySelector('[name="nome"]').value || 'Nome do imovel';
+  const bairro = form.querySelector('[name="bairro"]').value || 'Bairro';
+  const cidade = form.querySelector('[name="cidade"]').value || 'Cidade';
+  const quartos = form.querySelector('[name="quartos"]').value || '2';
+  const metragem = form.querySelector('[name="metragem"]').value || '--';
+  const tag = form.querySelector('[name="tag"]').value || 'Lancamento';
+  const imageUrl = form.querySelector('[name="imagemUrl"]').value || form.querySelector('[name="imagemExisting"]').value;
+
+  preview.innerHTML = `
+    <div class="imovel-card" style="max-width: 340px;">
+      <div class="imovel-card-img">
+        <img src="${resolveAdminMediaPath(imageUrl || 'assets/logo.png')}" alt="${escapeHtml(nome)}">
+        <span class="imovel-badge">${escapeHtml(tag)}</span>
+      </div>
+      <div class="imovel-card-body">
+        <p class="imovel-cidade">${escapeHtml(cidade)}</p>
+        <h3 class="imovel-nome">${escapeHtml(nome)}</h3>
+        <div class="imovel-specs">
+          <span class="spec">${escapeHtml(String(quartos))} Quartos</span>
+          <span class="spec">${escapeHtml(metragem)} m2</span>
+        </div>
+        <div class="imovel-card-footer">
+          <span class="imovel-bairro">${escapeHtml(bairro)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function syncDraftCollectionsFromDom() {
+  plantaDrafts = Array.from(document.querySelectorAll('.planta-item')).map((element) => ({
+    id: Number(element.dataset.id),
+    nome: element.querySelector('[data-field="nome"]').value.trim(),
+    descricao: element.querySelector('[data-field="descricao"]').value.trim(),
+    unidades: element.querySelector('[data-field="unidades"]').value.trim() ? Number(element.querySelector('[data-field="unidades"]').value) : null,
+  }));
+
+  comodoDrafts = Array.from(document.querySelectorAll('.comodo-item')).map((element) => {
+    const id = Number(element.dataset.id);
+    const current = comodoDrafts.find((item) => item.id === id);
+    return {
+      id,
+      nome: element.querySelector('[data-field="nome"]').value.trim(),
+      fotos: current?.fotos || [],
+    };
+  });
+}
+
+function renderPlantasList() {
+  const container = document.getElementById('plantas-list');
+  if (!container) return;
+
+  container.innerHTML = plantaDrafts.map((planta) => `
+    <div class="planta-item" data-id="${planta.id}" style="background: white; border: 1px solid #e5e8ec; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+      <div style="display:grid; grid-template-columns: 1.2fr 1fr 120px auto; gap: 12px; align-items:end;">
+        <div class="form-group" style="margin:0;">
+          <label>Nome</label>
+          <input type="text" data-field="nome" value="${escapeHtml(planta.nome || '')}" placeholder="Ex: Planta tipo">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Descricao</label>
+          <input type="text" data-field="descricao" value="${escapeHtml(planta.descricao || '')}" placeholder="Ex: 40,08 m2">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label>Unidades</label>
+          <input type="number" data-field="unidades" value="${planta.unidades ?? ''}" placeholder="Opcional">
+        </div>
+        <button type="button" class="btn btn-outline" data-action="remove-planta" data-id="${planta.id}" style="height: 42px; color:#ef4444; border-color:#ef4444;">Remover</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderComodosList() {
+  const container = document.getElementById('comodos-list');
+  if (!container) return;
+
+  container.innerHTML = comodoDrafts.map((comodo) => `
+    <div class="comodo-item" data-id="${comodo.id}" style="background: white; border: 1px solid #e5e8ec; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+      <div style="display:flex; gap: 12px; align-items:start; justify-content:space-between;">
+        <div style="flex:1;">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label>Nome do comodo</label>
+            <input type="text" data-field="nome" value="${escapeHtml(comodo.nome || '')}" placeholder="Ex: Sala de estar">
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap: 10px; margin-bottom: 12px;">
+            ${(comodo.fotos || []).map((foto, index) => `
+              <div style="position:relative;">
+                <img src="${resolveAdminMediaPath(foto)}" alt="Foto do comodo" style="width: 88px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e8ec;">
+                <button type="button" class="btn btn-outline" data-action="remove-comodo-photo" data-id="${comodo.id}" data-photo-index="${index}" style="position:absolute; top:4px; right:4px; padding:2px 6px; font-size:11px; color:#ef4444; border-color:#ef4444;">x</button>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="btn btn-outline" data-action="upload-comodo-photo" data-id="${comodo.id}">Adicionar foto</button>
+        </div>
+        <button type="button" class="btn btn-outline" data-action="remove-comodo" data-id="${comodo.id}" style="color:#ef4444; border-color:#ef4444;">Remover</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openModal(title, imovel) {
+  const form = document.getElementById('form-imovel');
+  if (!form) return;
+
+  editingImovelId = imovel?.id || null;
+  document.getElementById('modal-titulo').textContent = title;
+  document.getElementById('modal-overlay').classList.add('open');
+
+  form.reset();
+
+  const imageValue = imovel?.imagem || '';
+  const imageSource = imovel?.imagemSource || (imageValue && !imageValue.startsWith('http') ? 'upload' : 'url');
+  const imageSourceInput = form.querySelector(`[name="imagemSource"][value="${imageSource}"]`);
+  if (imageSourceInput) imageSourceInput.checked = true;
+
+  [
+    ['nome', imovel?.nome],
+    ['bairro', imovel?.bairro],
+    ['cidade', imovel?.cidade],
+    ['quartos', imovel?.quartos || 2],
+    ['metragem', imovel?.metragem],
+    ['descricao', imovel?.descricao],
+    ['tag', imovel?.tag || 'Lançamento'],
+    ['status', imovel?.status || 'Lançamento'],
+    ['localizacao', imovel?.localizacao],
+    ['mapsLink', imovel?.mapsLink],
+  ].forEach(([name, value]) => {
+    const input = form.querySelector(`[name="${name}"]`);
+    if (input) input.value = value || '';
+  });
+
+  form.querySelector('[name="imagemUrl"]').value = imageSource === 'url' ? imageValue : '';
+  form.querySelector('[name="imagemExisting"]').value = imageValue;
+  form.querySelector('[name="destaque"]').checked = Boolean(imovel?.destaque);
+  form.querySelector('[name="diferenciais"]').value = (imovel?.diferenciais || []).join(', ');
+
+  plantaDrafts = JSON.parse(JSON.stringify(imovel?.plantas || []));
+  comodoDrafts = JSON.parse(JSON.stringify(imovel?.comodos || []));
+  renderPlantasList();
+  renderComodosList();
+  updateImageSourceFields(form, 'imagem');
+  renderCardPreview();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingImovelId = null;
+  plantaDrafts = [];
+  comodoDrafts = [];
+}
+
+function openNovo() {
+  openModal('Novo imovel', null);
+}
+
+function openEdit(id) {
+  openModal('Editar imovel', appData.imoveis.find((item) => item.id === Number(id)));
+}
+
+function openCarouselModal(id) {
+  const form = document.getElementById('form-carousel-item');
+  if (!form) return;
+
+  editingCarouselId = id || null;
+  document.getElementById('modal-carousel-title').textContent = id ? 'Editar slide' : 'Novo slide';
+  document.getElementById('modal-carousel-overlay').classList.add('open');
+  form.reset();
+
+  const item = appData.carousel.find((entry) => entry.id === Number(id));
+  if (!item) {
+    updateImageSourceFields(form, 'image');
+    updateImageSourceFields(form, 'imageMobile');
     return;
   }
 
-  if (action === 'delete-whatsapp-option') {
-    const index = appData.whatsappOptions.findIndex(item => String(item.id) === String(optionId));
-    if (index >= 0) {
-      appData.whatsappOptions.splice(index, 1);
-      saveData();
-      renderWhatsAppOptionsList();
-      showAdminToast('<i class="fas fa-trash-alt"></i> Loteamento removido com sucesso.');
+  form.querySelector('[name="title"]').value = item.title || '';
+  form.querySelector('[name="subtitle"]').value = item.subtitle || '';
+  form.querySelector('[name="link"]').value = item.link || '';
+  form.querySelector('[name="imageExisting"]').value = item.imageDesktop || item.image || '';
+  form.querySelector('[name="imageMobileExisting"]').value = item.imageMobile || '';
+
+  const desktopSource = item.imageSource || ((item.imageDesktop || item.image || '').startsWith('http') ? 'url' : 'upload');
+  const mobileSource = item.imageMobileSource || ((item.imageMobile || '').startsWith('http') ? 'url' : 'upload');
+
+  const desktopInput = form.querySelector(`[name="imageSource"][value="${desktopSource}"]`);
+  const mobileInput = form.querySelector(`[name="imageMobileSource"][value="${mobileSource}"]`);
+  if (desktopInput) desktopInput.checked = true;
+  if (mobileInput) mobileInput.checked = true;
+  form.querySelector('[name="imageUrl"]').value = desktopSource === 'url' ? (item.imageDesktop || item.image || '') : '';
+  form.querySelector('[name="imageMobileUrl"]').value = mobileSource === 'url' ? (item.imageMobile || '') : '';
+  updateImageSourceFields(form, 'image');
+  updateImageSourceFields(form, 'imageMobile');
+}
+
+function closeCarouselModal() {
+  document.getElementById('modal-carousel-overlay').classList.remove('open');
+  editingCarouselId = null;
+}
+
+function openUserModal(id) {
+  editingUserId = id || null;
+  const form = document.getElementById('form-user-item');
+  if (!form) return;
+
+  document.getElementById('modal-user-title').textContent = id ? 'Editar usuario' : 'Novo usuario';
+  document.getElementById('modal-user-overlay').classList.add('open');
+  form.reset();
+
+  const user = appData.adminUsers.find((entry) => entry.id === id);
+  if (!user) return;
+
+  form.querySelector('[name="name"]').value = user.name || '';
+  form.querySelector('[name="email"]').value = user.email || '';
+}
+
+function closeUserModal() {
+  document.getElementById('modal-user-overlay').classList.remove('open');
+  editingUserId = null;
+}
+
+function addPlanta() {
+  syncDraftCollectionsFromDom();
+  plantaDrafts.push({ id: Date.now(), nome: '', descricao: '', unidades: null });
+  renderPlantasList();
+}
+
+function removePlanta(id) {
+  syncDraftCollectionsFromDom();
+  plantaDrafts = plantaDrafts.filter((item) => item.id !== Number(id));
+  renderPlantasList();
+}
+
+function addComodo() {
+  syncDraftCollectionsFromDom();
+  comodoDrafts.push({ id: Date.now(), nome: '', fotos: [] });
+  renderComodosList();
+}
+
+function removeComodo(id) {
+  syncDraftCollectionsFromDom();
+  comodoDrafts = comodoDrafts.filter((item) => item.id !== Number(id));
+  renderComodosList();
+}
+
+async function addComodoPhoto(id) {
+  syncDraftCollectionsFromDom();
+
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const objectPath = await window.uploadSupabaseFile(file, 'imoveis/comodos');
+      const target = comodoDrafts.find((item) => item.id === Number(id));
+      if (target) {
+        target.fotos = [...(target.fotos || []), objectPath];
+      }
+      renderComodosList();
+      showAdminToast('Foto enviada para o Supabase Storage.');
+    } catch (error) {
+      showAdminToast(error.message, 'error');
     }
-    return;
+  };
+  input.click();
+}
+
+function removeComodoPhoto(id, photoIndex) {
+  syncDraftCollectionsFromDom();
+  const target = comodoDrafts.find((item) => item.id === Number(id));
+  if (!target) return;
+  target.fotos = (target.fotos || []).filter((_, index) => index !== Number(photoIndex));
+  renderComodosList();
+}
+
+async function upsertSingletonsFromState(nextConfig, nextAbout) {
+  const client = getClient();
+
+  const { error: configError } = await client.from('site_config').upsert({
+    id: 1,
+    nome_empresa: nextConfig.nomeEmpresa || null,
+    telefone: nextConfig.telefone || null,
+    whatsapp: nextConfig.whatsapp || null,
+    whatsapp_vendas: nextConfig.whatsappVendas || null,
+    whatsapp_atendimento: nextConfig.whatsappAtendimento || null,
+    email: nextConfig.email || null,
+    endereco: nextConfig.endereco || null,
+    hero_chamada: nextConfig.heroChamada || null,
+    hero_subtitulo: nextConfig.heroSubtitulo || null,
+    google_maps_embed: nextConfig.googleMapsEmbed || null,
+  }, { onConflict: 'id' });
+  if (configError) throw configError;
+
+  const { error: aboutError } = await client.from('site_about').upsert({
+    id: 1,
+    about_title: nextAbout.aboutTitle || null,
+    about_subtitle: nextAbout.aboutSubtitle || null,
+    about_description: nextAbout.aboutDescription || null,
+    about_summary: nextAbout.aboutSummary || null,
+    about_mission_title: nextAbout.aboutMissionTitle || null,
+    about_mission_text: nextAbout.aboutMissionText || null,
+    mission_gallery: nextAbout.missionGallery || [],
+  }, { onConflict: 'id' });
+  if (aboutError) throw aboutError;
+}
+
+async function syncSimpleCollection(table, rows) {
+  const client = getClient();
+  const { data: existingRows, error: fetchError } = await client.from(table).select('id');
+  if (fetchError) throw fetchError;
+
+  const existingIds = (existingRows || []).map((item) => item.id);
+  const nextIds = rows.filter((item) => item.id).map((item) => item.id);
+  const idsToDelete = existingIds.filter((id) => !nextIds.includes(id));
+
+  if (idsToDelete.length) {
+    const { error: deleteError } = await client.from(table).delete().in('id', idsToDelete);
+    if (deleteError) throw deleteError;
+  }
+
+  if (rows.length) {
+    const { error: upsertError } = await client.from(table).upsert(rows, { onConflict: 'id' });
+    if (upsertError) throw upsertError;
   }
 }
 
-function salvarWhatsAppOption(event) {
+async function salvarConfig() {
+  const form = document.getElementById('form-config');
+  if (!form) return;
+
+  const formData = Object.fromEntries(new FormData(form));
+  const readField = (name, fallback = '') => Object.prototype.hasOwnProperty.call(formData, name) ? formData[name] : fallback;
+  const nextConfig = {
+    nomeEmpresa: readField('nomeEmpresa', appData.config.nomeEmpresa || ''),
+    telefone: readField('telefone', appData.config.telefone || ''),
+    whatsapp: readField('whatsapp', appData.config.whatsapp || ''),
+    whatsappVendas: readField('whatsappVendas', appData.config.whatsappVendas || ''),
+    whatsappAtendimento: readField('whatsappAtendimento', appData.config.whatsappAtendimento || ''),
+    email: readField('email', appData.config.email || ''),
+    endereco: readField('endereco', appData.config.endereco || ''),
+    heroChamada: readField('heroChamada', appData.config.heroChamada || ''),
+    heroSubtitulo: readField('heroSubtitulo', appData.config.heroSubtitulo || ''),
+    googleMapsEmbed: readField('googleMapsEmbed', appData.config.googleMapsEmbed || ''),
+  };
+
+  const nextAbout = {
+    ...appData.about,
+    aboutTitle: readField('aboutTitle', appData.about.aboutTitle || ''),
+    aboutSubtitle: readField('aboutSubtitle', appData.about.aboutSubtitle || ''),
+    aboutDescription: readField('aboutDescription', appData.about.aboutDescription || ''),
+    aboutSummary: readField('aboutSummary', appData.about.aboutSummary || ''),
+    aboutMissionTitle: readField('aboutMissionTitle', appData.about.aboutMissionTitle || ''),
+    aboutMissionText: readField('aboutMissionText', appData.about.aboutMissionText || ''),
+  };
+
+  try {
+    await upsertSingletonsFromState(nextConfig, nextAbout);
+    await loadAdminData();
+    showAdminToast('Configuracoes salvas com sucesso.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
+}
+
+async function salvarWhatsAppOption(event) {
   event.preventDefault();
   const form = document.getElementById('form-whatsapp-option');
   if (!form) return;
 
-  const idValue = form.querySelector('[name="id"]').value.trim();
-  const title = form.querySelector('[name="title"]').value.trim();
-  const description = form.querySelector('[name="description"]').value.trim();
-  const whatsapp = form.querySelector('[name="whatsapp"]').value.trim();
-
-  if (!title) {
-    showAdminToast('<i class="fas fa-exclamation-triangle"></i> O nome do loteamento é obrigatório.', 'error');
-    return;
-  }
-
-  if (!whatsapp || !/^\d{10,}$/.test(whatsapp.replace(/\D/g, ''))) {
-    showAdminToast('<i class="fas fa-exclamation-triangle"></i> Informe um número de WhatsApp válido (somente dígitos).', 'error');
-    return;
-  }
-
-  const option = {
-    id: idValue ? parseInt(idValue, 10) : Date.now(),
-    title,
-    description,
-    whatsapp: whatsapp.replace(/\D/g, '')
+  const payload = {
+    id: form.querySelector('[name="id"]').value ? Number(form.querySelector('[name="id"]').value) : undefined,
+    title: form.querySelector('[name="title"]').value.trim(),
+    description: form.querySelector('[name="description"]').value.trim(),
+    whatsapp: form.querySelector('[name="whatsapp"]').value.replace(/\D/g, ''),
   };
 
-  const existingIndex = appData.whatsappOptions.findIndex(item => String(item.id) === String(option.id));
-  if (existingIndex >= 0) {
-    appData.whatsappOptions[existingIndex] = option;
-    showAdminToast('<i class="fas fa-check"></i> Loteamento atualizado com sucesso!');
-  } else {
-    appData.whatsappOptions.push(option);
-    showAdminToast('<i class="fas fa-check"></i> Loteamento criado com sucesso!');
+  if (!payload.title || !payload.whatsapp) {
+    showAdminToast('Informe titulo e WhatsApp validos.', 'error');
+    return;
   }
 
-  saveData();
-  renderWhatsAppOptionsList();
-  resetWhatsAppOptionEditor();
+  try {
+    const client = getClient();
+    const { error } = await client.from('whatsapp_options').upsert(payload, { onConflict: 'id' });
+    if (error) throw error;
+    await loadAdminData();
+    resetWhatsAppOptionEditor();
+    showAdminToast(whatsappEditingId ? 'Loteamento atualizado.' : 'Loteamento criado.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
 }
 
-// ============================================================
-// EXPORTAR JSON
-// ============================================================
+async function deleteWhatsAppOption(id) {
+  if (!window.confirm('Excluir esta opcao de WhatsApp?')) return;
+  try {
+    const { error } = await getClient().from('whatsapp_options').delete().eq('id', Number(id));
+    if (error) throw error;
+    await loadAdminData();
+    resetWhatsAppOptionEditor();
+    showAdminToast('Opcao removida com sucesso.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
+}
 
-function exportarJSON() {
-  const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+async function salvarImovel() {
+  const form = document.getElementById('form-imovel');
+  if (!form) return;
+
+  syncDraftCollectionsFromDom();
+
+  try {
+    const imagem = await resolveImageFieldValue(form, 'imagem', 'imoveis/capas');
+    const existing = appData.imoveis.find((item) => item.id === editingImovelId) || {};
+    const payload = {
+      id: editingImovelId || undefined,
+      destaque: form.querySelector('[name="destaque"]').checked,
+      nome: form.querySelector('[name="nome"]').value.trim(),
+      bairro: form.querySelector('[name="bairro"]').value.trim(),
+      cidade: form.querySelector('[name="cidade"]').value.trim(),
+      quartos: Number(form.querySelector('[name="quartos"]').value || 0),
+      metragem: form.querySelector('[name="metragem"]').value.trim(),
+      descricao: form.querySelector('[name="descricao"]').value.trim(),
+      tag: form.querySelector('[name="tag"]').value.trim(),
+      imagem: imagem.value,
+      imagem_source: imagem.source,
+      imagem_galeria: existing.imagemGaleria?.length ? existing.imagemGaleria : [imagem.value],
+      diferenciais: form.querySelector('[name="diferenciais"]').value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+      localizacao: form.querySelector('[name="localizacao"]').value.trim(),
+      maps_link: form.querySelector('[name="mapsLink"]').value.trim(),
+      status: form.querySelector('[name="status"]').value.trim(),
+    };
+
+    if (!payload.nome) {
+      throw new Error('O nome do imovel e obrigatorio.');
+    }
+
+    const client = getClient();
+    const { data, error } = await client.from('imoveis').upsert(payload, {
+      onConflict: 'id',
+    }).select('id').single();
+    if (error) throw error;
+
+    const imovelId = data.id;
+
+    await client.from('imovel_plantas').delete().eq('imovel_id', imovelId);
+    await client.from('imovel_comodos').delete().eq('imovel_id', imovelId);
+
+    if (plantaDrafts.length) {
+      const { error: plantasError } = await client.from('imovel_plantas').insert(
+        plantaDrafts
+          .filter((item) => item.nome || item.descricao || item.unidades)
+          .map((item, index) => ({
+            imovel_id: imovelId,
+            nome: item.nome || null,
+            descricao: item.descricao || null,
+            unidades: item.unidades || null,
+            sort_order: index,
+          }))
+      );
+      if (plantasError) throw plantasError;
+    }
+
+    if (comodoDrafts.length) {
+      const { error: comodosError } = await client.from('imovel_comodos').insert(
+        comodoDrafts
+          .filter((item) => item.nome || (item.fotos || []).length)
+          .map((item) => ({
+            imovel_id: imovelId,
+            nome: item.nome || null,
+            fotos: item.fotos || [],
+          }))
+      );
+      if (comodosError) throw comodosError;
+    }
+
+    await loadAdminData();
+    closeModal();
+    showAdminToast(editingImovelId ? 'Imovel atualizado.' : 'Imovel criado.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
+}
+
+async function deleteImovel(id) {
+  if (!window.confirm('Excluir este imovel?')) return;
+  try {
+    const { error } = await getClient().from('imoveis').delete().eq('id', Number(id));
+    if (error) throw error;
+    await loadAdminData();
+    showAdminToast('Imovel removido com sucesso.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
+}
+
+async function saveCarouselItem() {
+  const form = document.getElementById('form-carousel-item');
+  if (!form) return;
+
+  try {
+    const desktopImage = await resolveImageFieldValue(form, 'image', 'carousel/desktop');
+    let mobileImage = { value: '', source: '' };
+
+    const mobileMode = form.querySelector('[name="imageMobileSource"]:checked')?.value || 'url';
+    if (
+      form.querySelector('[name="imageMobileFile"]')?.files?.[0] ||
+      form.querySelector('[name="imageMobileUrl"]')?.value.trim() ||
+      form.querySelector('[name="imageMobileExisting"]')?.value.trim()
+    ) {
+      mobileImage = await resolveImageFieldValue(form, 'imageMobile', 'carousel/mobile');
+    } else if (mobileMode === 'upload') {
+      mobileImage = { value: '', source: 'upload' };
+    }
+
+    const payload = {
+      id: editingCarouselId || undefined,
+      title: form.querySelector('[name="title"]').value.trim(),
+      subtitle: form.querySelector('[name="subtitle"]').value.trim(),
+      image_desktop: desktopImage.value,
+      image: desktopImage.value,
+      image_source: desktopImage.source,
+      image_mobile: mobileImage.value || null,
+      image_mobile_source: mobileImage.source || null,
+      link: form.querySelector('[name="link"]').value.trim() || null,
+      sort_order: editingCarouselId || appData.carousel.length + 1,
+    };
+
+    if (!payload.title) throw new Error('Titulo do slide e obrigatorio.');
+
+    const { error } = await getClient().from('carousel_items').upsert(payload, { onConflict: 'id' });
+    if (error) throw error;
+
+    await loadAdminData();
+    closeCarouselModal();
+    showAdminToast(editingCarouselId ? 'Slide atualizado.' : 'Slide criado.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
+}
+
+async function deleteCarouselItem(id) {
+  if (!window.confirm('Excluir este slide?')) return;
+  try {
+    const { error } = await getClient().from('carousel_items').delete().eq('id', Number(id));
+    if (error) throw error;
+    await loadAdminData();
+    showAdminToast('Slide removido.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
+}
+
+async function saveUser() {
+  const form = document.getElementById('form-user-item');
+  if (!form) return;
+
+  const payload = {
+    name: form.querySelector('[name="name"]').value.trim(),
+    email: form.querySelector('[name="email"]').value.trim().toLowerCase(),
+    password: form.querySelector('[name="password"]').value,
+  };
+
+  const passwordConfirm = form.querySelector('[name="passwordConfirm"]').value;
+
+  if (!payload.name || !payload.email) {
+    showAdminToast('Nome e e-mail sao obrigatorios.', 'error');
+    return;
+  }
+
+  if (!editingUserId && !payload.password) {
+    showAdminToast('Informe uma senha para o novo administrador.', 'error');
+    return;
+  }
+
+  if (payload.password && payload.password !== passwordConfirm) {
+    showAdminToast('As senhas nao conferem.', 'error');
+    return;
+  }
+
+  try {
+    if (editingUserId) {
+      await window.adminApiRequest(`/api/admin/users/${editingUserId}`, {
+        method: 'PATCH',
+        body: payload,
+      });
+    } else {
+      await window.adminApiRequest('/api/admin/users', {
+        method: 'POST',
+        body: payload,
+      });
+    }
+
+    await loadAdminData();
+    closeUserModal();
+    showAdminToast(editingUserId ? 'Usuario atualizado.' : 'Usuario criado.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
+}
+
+async function deleteUser(id) {
+  if (!window.confirm('Excluir este usuario administrador?')) return;
+  try {
+    await window.adminApiRequest(`/api/admin/users/${id}`, { method: 'DELETE' });
+    await loadAdminData();
+    showAdminToast('Usuario removido.');
+  } catch (error) {
+    showAdminToast(error.message, 'error');
+  }
+}
+
+async function exportarJSON() {
+  const snapshot = await loadSiteSnapshot(true);
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'imoveis.json';
-  a.click();
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'cellicruz-supabase-export.json';
+  anchor.click();
   URL.revokeObjectURL(url);
-  showAdminToast('<i class="fas fa-download"></i> JSON exportado! Substitua o arquivo data/imoveis.json');
+  showAdminToast('Snapshot exportado com sucesso.');
 }
 
-// ============================================================
-// IMPORTAR JSON
-// ============================================================
+async function replaceSnapshot(snapshot) {
+  const client = getClient();
+
+  await upsertSingletonsFromState(snapshot.config || {}, {
+    ...appData.about,
+    ...(snapshot.about || {}),
+  });
+
+  await syncSimpleCollection('about_mission_carousel', (snapshot.about?.missionCarousel || []).map((item, index) => ({
+    id: item.id,
+    title: item.title || null,
+    subtitle: item.subtitle || null,
+    image_desktop: item.imageDesktop || item.image || null,
+    image: item.image || item.imageDesktop || null,
+    image_source: item.imageSource || null,
+    image_mobile: item.imageMobile || null,
+    image_mobile_source: item.imageMobileSource || null,
+    sort_order: typeof item.id === 'number' ? item.id : index,
+  })));
+
+  await syncSimpleCollection('carousel_items', (snapshot.carousel || []).map((item, index) => ({
+    id: item.id,
+    title: item.title || null,
+    subtitle: item.subtitle || null,
+    image_desktop: item.imageDesktop || item.image || null,
+    image: item.image || item.imageDesktop || null,
+    image_source: item.imageSource || null,
+    image_mobile: item.imageMobile || null,
+    image_mobile_source: item.imageMobileSource || null,
+    link: item.link || null,
+    sort_order: typeof item.id === 'number' ? item.id : index,
+  })));
+
+  await syncSimpleCollection('whatsapp_options', (snapshot.whatsappOptions || []).map((item) => ({
+    id: item.id,
+    title: item.title || null,
+    description: item.description || null,
+    whatsapp: item.whatsapp || null,
+  })));
+
+  const existingImoveis = await client.from('imoveis').select('id');
+  if (existingImoveis.error) throw existingImoveis.error;
+  const existingIds = (existingImoveis.data || []).map((item) => item.id);
+  const nextIds = (snapshot.imoveis || []).map((item) => item.id).filter(Boolean);
+  const idsToDelete = existingIds.filter((id) => !nextIds.includes(id));
+
+  if (idsToDelete.length) {
+    const { error: deleteImoveisError } = await client.from('imoveis').delete().in('id', idsToDelete);
+    if (deleteImoveisError) throw deleteImoveisError;
+  }
+
+  if (snapshot.imoveis?.length) {
+    const { error: upsertImoveisError } = await client.from('imoveis').upsert(snapshot.imoveis.map((item) => ({
+      id: item.id,
+      destaque: Boolean(item.destaque),
+      nome: item.nome,
+      bairro: item.bairro || null,
+      cidade: item.cidade || null,
+      quartos: item.quartos || null,
+      metragem: item.metragem || null,
+      descricao: item.descricao || null,
+      tag: item.tag || null,
+      imagem: item.imagem || null,
+      imagem_source: item.imagemSource || null,
+      imagem_galeria: item.imagemGaleria || [],
+      diferenciais: item.diferenciais || [],
+      localizacao: item.localizacao || null,
+      maps_link: item.mapsLink || null,
+      status: item.status || null,
+    })), { onConflict: 'id' });
+    if (upsertImoveisError) throw upsertImoveisError;
+  }
+
+  const { error: deletePlantasError } = await client.from('imovel_plantas').delete().gt('id', 0);
+  if (deletePlantasError) throw deletePlantasError;
+  const { error: deleteComodosError } = await client.from('imovel_comodos').delete().gt('id', 0);
+  if (deleteComodosError) throw deleteComodosError;
+
+  const plantas = [];
+  const comodos = [];
+
+  (snapshot.imoveis || []).forEach((imovel) => {
+    (imovel.plantas || []).forEach((planta, index) => {
+      plantas.push({
+        imovel_id: imovel.id,
+        nome: planta.nome || null,
+        descricao: planta.descricao || null,
+        unidades: planta.unidades || null,
+        sort_order: index,
+      });
+    });
+
+    (imovel.comodos || []).forEach((comodo) => {
+      comodos.push({
+        imovel_id: imovel.id,
+        nome: comodo.nome || null,
+        fotos: comodo.fotos || [],
+      });
+    });
+  });
+
+  if (plantas.length) {
+    const { error: plantasError } = await client.from('imovel_plantas').insert(plantas);
+    if (plantasError) throw plantasError;
+  }
+
+  if (comodos.length) {
+    const { error: comodosError } = await client.from('imovel_comodos').insert(comodos);
+    if (comodosError) throw comodosError;
+  }
+}
 
 function importarJSON() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.json';
-  input.onchange = (e) => {
-    const file = e.target.files[0];
+  input.accept = '.json,application/json';
+  input.onchange = async (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        appData = data;
-        appData.carousel = appData.carousel || [];
-        appData.adminUsers = appData.adminUsers || [];
-        appData.about = appData.about || {};
-        renderDashboard();
-        renderTable();
-        loadConfigForm();
-        showAdminToast('<i class="fas fa-check"></i> JSON importado com sucesso!');
-      } catch {
-        showAdminToast('<i class="fas fa-circle-exclamation"></i> Arquivo JSON inválido.', 'error');
-      }
-    };
-    reader.readAsText(file);
+
+    try {
+      const text = await file.text();
+      const snapshot = JSON.parse(text);
+      await replaceSnapshot(snapshot);
+      await loadAdminData();
+      showAdminToast('Snapshot importado para o Supabase.');
+    } catch (error) {
+      showAdminToast(error.message || 'Arquivo invalido.', 'error');
+    }
   };
   input.click();
 }
 
-// ============================================================
-// NAVEGAÇÃO SIDEBAR
-// ============================================================
+function mostrarJSON() {
+  const preview = document.getElementById('json-preview');
+  if (preview) {
+    preview.textContent = JSON.stringify(appData, null, 2);
+  }
+}
 
 function showSection(sectionId) {
-  document.querySelectorAll('.admin-section').forEach(s => s.style.display = 'none');
-  const section = document.getElementById(`section-${sectionId}`);
-  if (section) section.style.display = 'block';
+  document.querySelectorAll('.admin-section').forEach((section) => {
+    section.style.display = 'none';
+  });
+  document.getElementById(`section-${sectionId}`)?.style.setProperty('display', 'block');
 
-  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-  const activeLink = document.querySelector(`[data-section="${sectionId}"]`);
-  if (activeLink) activeLink.classList.add('active');
+  document.querySelectorAll('.sidebar-link').forEach((link) => link.classList.remove('active'));
+  document.querySelector(`[data-section="${sectionId}"]`)?.classList.add('active');
 
   if (sectionId === 'config') loadConfigForm();
-  if (sectionId === 'whatsapp') loadWhatsAppSection();
+  if (sectionId === 'whatsapp') renderWhatsAppOptionsList();
 }
 
-// ============================================================
-// TOAST ADMIN
-// ============================================================
-// GERENCIAR CÔMODOS (ROOM PHOTOS)
-// ============================================================
+function handleTableClicks(event) {
+  const button = event.target.closest('[data-action]');
+  if (!button) return;
 
-let comodoEditando = {};
-
-function adicionarComodo() {
-  comodoEditando = { id: Date.now(), nome: '', fotos: [] };
-  renderComodoForm(comodoEditando);
-}
-
-function renderComodoForm(comodo) {
-  const form = document.getElementById('form-imovel');
-  if (!form) return;
-  
-  let lista = form.querySelector('#comodos-list');
-  const exists = lista.querySelector(`[data-comodo-id="${comodo.id}"]`);
-  
-  if (!exists) {
-    const div = document.createElement('div');
-    div.setAttribute('data-comodo-id', comodo.id);
-    div.style.cssText = 'background: white; border: 1px solid #e5e8ec; border-radius: 6px; padding: 12px; margin-bottom: 12px;';
-    
-    div.innerHTML = `
-      <div style="display: flex; gap: 12px; align-items: flex-start;">
-        <div style="flex: 1;">
-          <input type="text" class="comodo-nome" placeholder="Ex: Sala de Estar" value="${comodo.nome}" style="width: 100%; padding: 8px; border: 1px solid #d0d0d0; border-radius: 4px; margin-bottom: 8px;" required>
-          <div class="comodo-fotos" style="margin-bottom: 8px;">
-            <!-- Fotos serão listadas aqui -->
-          </div>
-          <button type="button" class="btn btn-outline" style="font-size: 12px; padding: 6px 10px;" onclick="adicionarFotoComodo(${comodo.id})">
-            <i class="fas fa-plus"></i> Adicionar Foto
-          </button>
-        </div>
-        <button type="button" class="btn btn-sm" style="background: #fee; color: #c00; border: 1px solid #fcc; padding: 6px 10px;" onclick="removerComodo(${comodo.id})">
-          <i class="fas fa-trash-alt"></i>
-        </button>
-      </div>
-    `;
-    lista.appendChild(div);
-  }
-  
-  renderFotosComodo(comodo.id, comodo.fotos || []);
-}
-
-function renderFotosComodo(comodoId, fotos) {
-  const fotosDiv = document.querySelector(`[data-comodo-id="${comodoId}"] .comodo-fotos`);
-  if (!fotosDiv) return;
-  
-  fotosDiv.innerHTML = fotos.map((foto, idx) => {
-    const caminhoResolvido = resolveAdminMediaPath(foto);
-    return `
-    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px; padding: 6px; background: #f5f5f5; border-radius: 4px;">
-      <img src="${caminhoResolvido}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 3px;" alt="Foto do cômodo"
-        onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ccc%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2212%22 fill=%22%23999%22%3EErro ao carregar%3C/text%3E%3C/svg%3E';">
-      <span style="flex: 1; font-size: 12px; color: #666; word-break: break-all;" title="${foto}">${foto.substring(0, 30)}...</span>
-      <button type="button" class="btn btn-sm" style="background: #fee; color: #c00; border: none; padding: 4px 8px; font-size: 12px;" onclick="removerFotoComodo(${comodoId}, ${idx})">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-  `}).join('');
-}
-
-function adicionarFotoComodo(comodoId) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    try {
-      const path = await uploadImageFile(file);
-      
-      const comodosDiv = document.querySelector(`[data-comodo-id="${comodoId}"]`);
-      if (!comodosDiv) return;
-      
-      const nomeInput = comodosDiv.querySelector('.comodo-nome');
-      const nome = nomeInput.value.trim() || 'Cômodo';
-      
-      // Armazena temporariamente no comodoEditando
-      if (!comodoEditando.fotos) comodoEditando.fotos = [];
-      if (comodoEditando.id === comodoId) {
-        comodoEditando.fotos.push(path);
-        renderFotosComodo(comodoId, comodoEditando.fotos);
-        showAdminToast(`<i class="fas fa-image"></i> Foto de ${nome} adicionada!`);
-      }
-    } catch (error) {
-      console.error('Erro ao adicionar foto:', error);
-      // Toast já foi exibido no uploadImageFile
-    }
-  };
-  input.click();
-}
-
-function removerFotoComodo(comodoId, fotoIdx) {
-  if (comodoEditando.id === comodoId && comodoEditando.fotos) {
-    comodoEditando.fotos.splice(fotoIdx, 1);
-    renderFotosComodo(comodoId, comodoEditando.fotos);
+  const id = button.dataset.id;
+  switch (button.dataset.action) {
+    case 'edit-imovel':
+      openEdit(id);
+      break;
+    case 'delete-imovel':
+      deleteImovel(id);
+      break;
+    case 'edit-carousel':
+      openCarouselModal(Number(id));
+      break;
+    case 'delete-carousel':
+      deleteCarouselItem(id);
+      break;
+    case 'edit-user':
+      openUserModal(id);
+      break;
+    case 'delete-user':
+      deleteUser(id);
+      break;
+    case 'edit-whatsapp':
+      openWhatsAppOptionEditor(appData.whatsappOptions.find((item) => String(item.id) === String(id)));
+      break;
+    case 'delete-whatsapp':
+      deleteWhatsAppOption(id);
+      break;
+    case 'remove-planta':
+      removePlanta(id);
+      break;
+    case 'remove-comodo':
+      removeComodo(id);
+      break;
+    case 'upload-comodo-photo':
+      addComodoPhoto(id);
+      break;
+    case 'remove-comodo-photo':
+      removeComodoPhoto(id, button.dataset.photoIndex);
+      break;
+    default:
+      break;
   }
 }
-
-function removerComodo(comodoId) {
-  const div = document.querySelector(`[data-comodo-id="${comodoId}"]`);
-  if (div) div.remove();
-  if (comodoEditando.id === comodoId) {
-    comodoEditando = {};
-  }
-}
-
-function coletarComodos() {
-  const lista = document.querySelectorAll('#comodos-list > div[data-comodo-id]');
-  const comodos = [];
-  lista.forEach(div => {
-    const comodoId = div.getAttribute('data-comodo-id');
-    const nome = div.querySelector('.comodo-nome').value.trim();
-    const fotos = [];
-    div.querySelectorAll('.comodo-fotos img').forEach(img => {
-      fotos.push(img.src);
-    });
-    if (nome || fotos.length > 0) {
-      comodos.push({ id: parseInt(comodoId), nome: nome || 'Cômodo', fotos });
-    }
-  });
-  return comodos;
-}
-
-// ============================================================
-
-function showAdminToast(msg, type = 'success') {
-  let toast = document.getElementById('admin-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'admin-toast';
-    toast.className = 'toast';
-    document.body.appendChild(toast);
-  }
-  toast.className = `toast ${type}`;
-  // Use innerHTML para renderizar ícones, mas limpar primeiro
-  const msgWithoutHTML = msg.replace(/<[^>]*>/g, '');
-  toast.innerHTML = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 4000);
-}
-
-// ============================================================
-// EVENT LISTENERS - CSP COMPLIANCE
-// ============================================================
 
 function setupEventListeners() {
-  // Sidebar navigation
-  document.querySelectorAll('[data-section]').forEach(link => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
+  document.querySelectorAll('[data-section]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
       showSection(link.dataset.section);
     });
   });
 
-  // Logout button
-  const btnLogout = document.getElementById('btn-logout');
-  if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
+  document.getElementById('btn-logout')?.addEventListener('click', logoutAdmin);
+  document.getElementById('search-imovel')?.addEventListener('input', (event) => renderTable(event.target.value));
+  document.getElementById('btn-new-imovel')?.addEventListener('click', openNovo);
+  document.getElementById('btn-save-imovel')?.addEventListener('click', salvarImovel);
+  document.getElementById('btn-save-config')?.addEventListener('click', salvarConfig);
+  document.getElementById('btn-new-whatsapp-option')?.addEventListener('click', resetWhatsAppOptionEditor);
+  document.getElementById('form-whatsapp-option')?.addEventListener('submit', salvarWhatsAppOption);
+  document.getElementById('btn-cancel-whatsapp-option')?.addEventListener('click', resetWhatsAppOptionEditor);
+  document.getElementById('btn-new-carousel')?.addEventListener('click', () => openCarouselModal(null));
+  document.getElementById('btn-save-carousel')?.addEventListener('click', saveCarouselItem);
+  document.getElementById('btn-new-user')?.addEventListener('click', () => openUserModal(null));
+  document.getElementById('btn-save-user')?.addEventListener('click', saveUser);
+  document.getElementById('btn-save-server')?.addEventListener('click', async () => {
+    try {
+      await loadAdminData();
+      showAdminToast('Painel recarregado a partir do Supabase.');
+    } catch (error) {
+      showAdminToast(error.message, 'error');
+    }
+  });
+  document.getElementById('btn-export-json')?.addEventListener('click', exportarJSON);
+  document.getElementById('btn-import-json')?.addEventListener('click', importarJSON);
+  document.getElementById('btn-show-json')?.addEventListener('click', mostrarJSON);
+  document.getElementById('btn-add-comodo')?.addEventListener('click', addComodo);
+  document.getElementById('btn-add-planta')?.addEventListener('click', addPlanta);
+  document.querySelector('.btn-cancel-imovel')?.addEventListener('click', closeModal);
+  document.querySelector('.btn-close-modal-imovel')?.addEventListener('click', closeModal);
+  document.querySelector('.btn-cancel-carousel')?.addEventListener('click', closeCarouselModal);
+  document.querySelector('.btn-close-modal-carousel')?.addEventListener('click', closeCarouselModal);
+  document.querySelector('.btn-cancel-user')?.addEventListener('click', closeUserModal);
+  document.querySelector('.btn-close-modal-user')?.addEventListener('click', closeUserModal);
 
-  // Imoveis section buttons
-  const btnNewImovel = document.getElementById('btn-new-imovel');
-  if (btnNewImovel) btnNewImovel.addEventListener('click', openNovo);
+  document.getElementById('imoveis-tbody')?.addEventListener('click', handleTableClicks);
+  document.getElementById('carousel-tbody')?.addEventListener('click', handleTableClicks);
+  document.getElementById('admin-users-tbody')?.addEventListener('click', handleTableClicks);
+  document.getElementById('whatsapp-options-tbody')?.addEventListener('click', handleTableClicks);
+  document.getElementById('comodos-list')?.addEventListener('click', handleTableClicks);
+  document.getElementById('plantas-list')?.addEventListener('click', handleTableClicks);
 
-  const btnSaveImovel = document.getElementById('btn-save-imovel');
-  if (btnSaveImovel) btnSaveImovel.addEventListener('click', salvarImovel);
-
-  const btnCancelImovel = document.querySelector('.btn-cancel-imovel');
-  if (btnCancelImovel) btnCancelImovel.addEventListener('click', closeModal);
-
-  const btnCloseModalImovel = document.querySelector('.btn-close-modal-imovel');
-  if (btnCloseModalImovel) btnCloseModalImovel.addEventListener('click', closeModal);
-
-  const btnAddComodo = document.getElementById('btn-add-comodo');
-  if (btnAddComodo) btnAddComodo.addEventListener('click', adicionarComodo);
-
-  // Config section buttons
-  const btnSaveConfig = document.getElementById('btn-save-config');
-  if (btnSaveConfig) btnSaveConfig.addEventListener('click', salvarConfig);
-
-  const btnNewWhatsAppOption = document.getElementById('btn-new-whatsapp-option');
-  if (btnNewWhatsAppOption) btnNewWhatsAppOption.addEventListener('click', () => openWhatsAppOptionEditor({ id: '', title: '', description: '', whatsapp: '' }));
-
-  const whatsappOptionsList = document.getElementById('whatsapp-options-tbody');
-  if (whatsappOptionsList) whatsappOptionsList.addEventListener('click', handleWhatsAppOptionListClick);
-
-  const formWhatsAppOption = document.getElementById('form-whatsapp-option');
-  if (formWhatsAppOption) formWhatsAppOption.addEventListener('submit', salvarWhatsAppOption);
-
-  const btnCancelWhatsAppOption = document.getElementById('btn-cancel-whatsapp-option');
-  if (btnCancelWhatsAppOption) btnCancelWhatsAppOption.addEventListener('click', resetWhatsAppOptionEditor);
-
-  // Carousel section buttons
-  const btnNewCarousel = document.getElementById('btn-new-carousel');
-  if (btnNewCarousel) btnNewCarousel.addEventListener('click', openNewCarouselItem);
-
-  const btnSaveCarousel = document.getElementById('btn-save-carousel');
-  if (btnSaveCarousel) btnSaveCarousel.addEventListener('click', saveCarouselItem);
-
-  const btnCancelCarousel = document.querySelector('.btn-cancel-carousel');
-  if (btnCancelCarousel) btnCancelCarousel.addEventListener('click', closeCarouselModal);
-
-  const btnCloseModalCarousel = document.querySelector('.btn-close-modal-carousel');
-  if (btnCloseModalCarousel) btnCloseModalCarousel.addEventListener('click', closeCarouselModal);
-
-  // Usuarios section buttons
-  const btnNewUser = document.getElementById('btn-new-user');
-  if (btnNewUser) btnNewUser.addEventListener('click', openUserModal);
-
-  const btnSaveUser = document.getElementById('btn-save-user');
-  if (btnSaveUser) btnSaveUser.addEventListener('click', saveUser);
-
-  const btnCancelUser = document.querySelector('.btn-cancel-user');
-  if (btnCancelUser) btnCancelUser.addEventListener('click', closeUserModal);
-
-  const btnCloseModalUser = document.querySelector('.btn-close-modal-user');
-  if (btnCloseModalUser) btnCloseModalUser.addEventListener('click', closeUserModal);
-
-  // Dados section buttons
-  const btnSaveServer = document.getElementById('btn-save-server');
-  if (btnSaveServer) btnSaveServer.addEventListener('click', salvarParaServidor);
-
-  const btnExportJson = document.getElementById('btn-export-json');
-  if (btnExportJson) btnExportJson.addEventListener('click', exportarJSON);
-
-  const btnImportJson = document.getElementById('btn-import-json');
-  if (btnImportJson) btnImportJson.addEventListener('click', importarJSON);
-
-  const btnShowJson = document.getElementById('btn-show-json');
-  if (btnShowJson) btnShowJson.addEventListener('click', mostrarJSON);
+  document.getElementById('form-imovel')?.addEventListener('input', renderCardPreview);
+  document.getElementById('form-imovel')?.addEventListener('change', renderCardPreview);
 }
 
-// ============================================================
-// INIT ADMIN
-// ============================================================
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!await requireAdminLogin()) return;
+  initImageSourceToggles();
   setupEventListeners();
-  loadAdminData();
   showSection('imoveis');
+
+  try {
+    await loadAdminData();
+  } catch (error) {
+    showAdminToast(error.message || 'Falha ao carregar dados do admin.', 'error');
+  }
 });
+
+window.showSection = showSection;
+window.mostrarJSON = mostrarJSON;

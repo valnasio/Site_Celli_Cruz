@@ -1,176 +1,141 @@
-const ADMIN_LOGIN_KEY = 'cellicruzAdminSession';
+(function () {
+  'use strict';
 
-function getBasePath() {
-  return window.location.pathname.includes('/pages/') ? '../' : './';
-}
-
-function getAdminDataPath() {
-  return getBasePath() + 'data/imoveis.json?t=' + Date.now();
-}
-
-async function fetchAdminData() {
-  const res = await fetch(getAdminDataPath());
-  if (!res.ok) throw new Error('Não foi possível carregar dados de admin.');
-  return await res.json();
-}
-
-async function hashPassword(password, salt) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(salt + password);
-
-  if (!window.crypto || !window.crypto.subtle) {
-    return simpleHash(salt + password);
+  function getAdminPath(page) {
+    return window.location.pathname.includes('/pages/') ? page : `pages/${page}`;
   }
 
-  try {
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
-  } catch (err) {
-    return simpleHash(salt + password);
+  function getClient() {
+    if (!window.supabaseClient) {
+      throw new Error('Supabase client nao inicializado.');
+    }
+    return window.supabaseClient;
   }
-}
 
-function simpleHash(str) {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    hash = hash & hash;
+  function getUserLabel(user) {
+    return user?.user_metadata?.name || user?.email || 'Administrador';
   }
-  return Math.abs(hash).toString(16);
-}
 
-function createSessionToken() {
-  const array = new Uint8Array(32);
-  window.crypto.getRandomValues(array);
-  return Array.from(array).map(byte => byte.toString(16).padStart(2, '0')).join('');
-}
+  async function loginAdmin(email, password) {
+    const client = getClient();
+    const credentials = {
+      email: String(email || '').trim().toLowerCase(),
+      password: String(password || ''),
+    };
 
-function saveAdminSession(username) {
-  const session = {
-    username,
-    token: createSessionToken(),
-    expires: Date.now() + 60 * 60 * 1000
-  };
-  sessionStorage.setItem(ADMIN_LOGIN_KEY, JSON.stringify(session));
-}
-
-function clearAdminSession() {
-  sessionStorage.removeItem(ADMIN_LOGIN_KEY);
-}
-
-function getAdminSession() {
-  try {
-    const raw = sessionStorage.getItem(ADMIN_LOGIN_KEY);
-    if (!raw) return null;
-
-    let session = null;
-    try {
-      session = JSON.parse(raw);
-    } catch (parseError) {
-      console.warn('Admin session inválida, removendo valor antigo.', parseError);
-      sessionStorage.removeItem(ADMIN_LOGIN_KEY);
-      return null;
+    if (!credentials.email || !credentials.password) {
+      throw new Error('Informe e-mail e senha.');
     }
 
-    if (!session || !session.username || !session.token || !session.expires) {
-      return null;
+    const { data, error } = await client.auth.signInWithPassword(credentials);
+    if (error) throw error;
+    return data;
+  }
+
+  async function getAdminSession() {
+    const client = getClient();
+    const { data, error } = await client.auth.getSession();
+    if (error) throw error;
+    return data?.session || null;
+  }
+
+  async function isAdminAuthenticated() {
+    return Boolean(await getAdminSession());
+  }
+
+  async function getAuthenticatedAdminUser() {
+    const client = getClient();
+    const { data, error } = await client.auth.getUser();
+    if (error) throw error;
+    return data?.user || null;
+  }
+
+  async function logoutAdmin() {
+    const client = getClient();
+    await client.auth.signOut();
+    window.location.href = getAdminPath('login.html');
+  }
+
+  async function requireAdminLogin() {
+    const authenticated = await isAdminAuthenticated();
+    if (!authenticated) {
+      window.location.href = getAdminPath('login.html');
+      return false;
     }
-    if (Date.now() > session.expires) {
-      clearAdminSession();
-      return null;
-    }
-    return session;
-  } catch {
-    return null;
-  }
-}
-
-async function verifyAdminCredentials(username, password) {
-  const data = await fetchAdminData();
-  const users = data.adminUsers || [];
-  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-  if (!user) {
-    throw new Error('Usuário ou senha inválidos.');
+    return true;
   }
 
-  const hash = await hashPassword(password, user.salt || '');
-  if (hash !== user.passwordHash) {
-    throw new Error('Usuário ou senha inválidos.');
+  async function initLoginForm() {
+    const form = document.getElementById('login-form');
+    const errorEl = document.getElementById('login-error');
+    if (!form || !errorEl) return;
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorEl.textContent = '';
+
+      const button = form.querySelector('button[type="submit"]');
+      const originalText = button?.textContent || '';
+
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Entrando...';
+      }
+
+      try {
+        const formData = new FormData(form);
+        const email = String(formData.get('email') || '');
+        const password = String(formData.get('password') || '');
+        await loginAdmin(email, password);
+        window.location.href = 'admin.html';
+      } catch (error) {
+        errorEl.textContent = error.message || 'Falha ao autenticar.';
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = originalText;
+        }
+      }
+    });
   }
 
-  return user;
-}
-
-async function loginAdmin(username, password) {
-  if (!username || !password) {
-    throw new Error('Usuário e senha são obrigatórios.');
-  }
-
-  const user = await verifyAdminCredentials(username, password);
-  saveAdminSession(user.username);
-  return { ok: true, username: user.username };
-}
-
-function isAdminAuthenticated() {
-  return !!getAdminSession();
-}
-
-function logoutAdmin() {
-  clearAdminSession();
-  const redirectPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
-  window.location.href = redirectPath;
-}
-
-async function initLoginForm() {
-  const form = document.getElementById('login-form');
-  const errorEl = document.getElementById('login-error');
-  if (!form || !errorEl) return;
-
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    errorEl.textContent = '';
-    const username = form.username.value.trim();
-    const password = form.password.value;
-
-    try {
-      await loginAdmin(username, password);
-      window.location.href = 'admin.html';
-    } catch (err) {
-      errorEl.textContent = err.message;
-    }
-  });
-}
-
-function requireAdminLogin() {
-  if (!isAdminAuthenticated()) {
-    const redirectPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
-    window.location.href = redirectPath;
-    return false;
-  }
-  return true;
-}
-
-function getAuthenticatedAdminUsername() {
-  const session = getAdminSession();
-  return session ? session.username : null;
-}
-
-if (window.location.pathname.endsWith('/login.html')) {
   document.addEventListener('DOMContentLoaded', async () => {
-    if (isAdminAuthenticated()) {
-      window.location.href = 'admin.html';
+    const isLoginPage = window.location.pathname.endsWith('/login.html');
+    const isAdminPage = window.location.pathname.endsWith('/admin.html');
+    const client = window.supabaseClient;
+
+    if (!client) {
+      console.error('Supabase client indisponivel nas paginas administrativas.');
       return;
     }
-    initLoginForm();
-  });
-}
 
-if (window.location.pathname.endsWith('/admin.html')) {
-  document.addEventListener('DOMContentLoaded', async () => {
-    if (!requireAdminLogin()) return;
-    const username = getAuthenticatedAdminUsername();
-    const userLabel = document.getElementById('admin-user-name');
-    if (userLabel && username) userLabel.textContent = username;
+    client.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' && isAdminPage) {
+        window.location.href = 'login.html';
+      }
+    });
+
+    if (isLoginPage) {
+      if (await isAdminAuthenticated()) {
+        window.location.href = 'admin.html';
+        return;
+      }
+      initLoginForm();
+      return;
+    }
+
+    if (isAdminPage) {
+      if (!await requireAdminLogin()) return;
+      const user = await getAuthenticatedAdminUser();
+      const userLabel = document.getElementById('admin-user-name');
+      if (userLabel) userLabel.textContent = getUserLabel(user);
+    }
   });
-}
+
+  window.loginAdmin = loginAdmin;
+  window.isAdminAuthenticated = isAdminAuthenticated;
+  window.getAdminSession = getAdminSession;
+  window.getAuthenticatedAdminUser = getAuthenticatedAdminUser;
+  window.requireAdminLogin = requireAdminLogin;
+  window.logoutAdmin = logoutAdmin;
+})();
