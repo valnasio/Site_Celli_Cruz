@@ -28,7 +28,8 @@ RUN mkdir -p /app/data /app/assets/uploads
 
 # Ajustar permissões para o usuário nodejs
 RUN chown -R 1001:1001 /app/data /app/assets/uploads && chmod -R 777 /app/data /app/assets/uploads
-
+RUN chown 1001:1001 /app/data/imoveis.json && chmod 777 /app/data/imoveis.json
+RUN chmod 777 /app/data/ && chmod 777 /app/data/imoveis.json 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:8000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
