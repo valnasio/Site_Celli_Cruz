@@ -28,6 +28,13 @@ async function loadAdminData() {
     appData = await res.json();
     appData.carousel = appData.carousel || [];
     appData.adminUsers = appData.adminUsers || [];
+    appData.about = appData.about || {
+      aboutTitle: 'Quem somos',
+      aboutSubtitle: 'A Celli Cruz conecta sua família ao melhor imóvel.',
+      aboutDescription: 'A Celli Cruz Assessoria Imobiliária atua em Feira de Santana com foco em transparência, atendimento personalizado e soluções completas para compra e venda de imóveis.',
+      aboutMissionTitle: 'Nossa missão',
+      aboutMissionText: 'Promover oportunidades de moradia com segurança, qualidade e compromisso com o cliente. Cada projeto é pensado para ser um novo lar, com atenção ao detalhe e experiência humana.'
+    };
     renderDashboard();
     renderTable();
     renderCarouselTable();
@@ -865,6 +872,12 @@ function loadConfigForm() {
     const el = f.querySelector(`[name="${key}"]`);
     if (el) el.value = c[key];
   });
+
+  appData.about = appData.about || {};
+  Object.keys(appData.about).forEach(key => {
+    const el = f.querySelector(`[name="${key}"]`);
+    if (el) el.value = appData.about[key];
+  });
 }
 
 function salvarConfig() {
@@ -873,7 +886,12 @@ function salvarConfig() {
 
   const inputs = f.querySelectorAll('input, textarea');
   inputs.forEach(input => {
-    appData.config[input.name] = input.value;
+    if (input.name.startsWith('about')) {
+      appData.about = appData.about || {};
+      appData.about[input.name] = input.value;
+    } else {
+      appData.config[input.name] = input.value;
+    }
   });
 
   saveData();
@@ -911,6 +929,9 @@ function importarJSON() {
       try {
         const data = JSON.parse(ev.target.result);
         appData = data;
+        appData.carousel = appData.carousel || [];
+        appData.adminUsers = appData.adminUsers || [];
+        appData.about = appData.about || {};
         renderDashboard();
         renderTable();
         loadConfigForm();
@@ -1088,10 +1109,88 @@ function showAdminToast(msg, type = 'success') {
 }
 
 // ============================================================
+// EVENT LISTENERS - CSP COMPLIANCE
+// ============================================================
+
+function setupEventListeners() {
+  // Sidebar navigation
+  document.querySelectorAll('[data-section]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      showSection(link.dataset.section);
+    });
+  });
+
+  // Logout button
+  const btnLogout = document.getElementById('btn-logout');
+  if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
+
+  // Imoveis section buttons
+  const btnNewImovel = document.getElementById('btn-new-imovel');
+  if (btnNewImovel) btnNewImovel.addEventListener('click', openNovo);
+
+  const btnSaveImovel = document.getElementById('btn-save-imovel');
+  if (btnSaveImovel) btnSaveImovel.addEventListener('click', salvarImovel);
+
+  const btnCancelImovel = document.querySelector('.btn-cancel-imovel');
+  if (btnCancelImovel) btnCancelImovel.addEventListener('click', closeModal);
+
+  const btnCloseModalImovel = document.querySelector('.btn-close-modal-imovel');
+  if (btnCloseModalImovel) btnCloseModalImovel.addEventListener('click', closeModal);
+
+  const btnAddComodo = document.getElementById('btn-add-comodo');
+  if (btnAddComodo) btnAddComodo.addEventListener('click', adicionarComodo);
+
+  // Config section buttons
+  const btnSaveConfig = document.getElementById('btn-save-config');
+  if (btnSaveConfig) btnSaveConfig.addEventListener('click', salvarConfig);
+
+  // Carousel section buttons
+  const btnNewCarousel = document.getElementById('btn-new-carousel');
+  if (btnNewCarousel) btnNewCarousel.addEventListener('click', openNewCarouselItem);
+
+  const btnSaveCarousel = document.getElementById('btn-save-carousel');
+  if (btnSaveCarousel) btnSaveCarousel.addEventListener('click', saveCarouselItem);
+
+  const btnCancelCarousel = document.querySelector('.btn-cancel-carousel');
+  if (btnCancelCarousel) btnCancelCarousel.addEventListener('click', closeCarouselModal);
+
+  const btnCloseModalCarousel = document.querySelector('.btn-close-modal-carousel');
+  if (btnCloseModalCarousel) btnCloseModalCarousel.addEventListener('click', closeCarouselModal);
+
+  // Usuarios section buttons
+  const btnNewUser = document.getElementById('btn-new-user');
+  if (btnNewUser) btnNewUser.addEventListener('click', openUserModal);
+
+  const btnSaveUser = document.getElementById('btn-save-user');
+  if (btnSaveUser) btnSaveUser.addEventListener('click', saveUser);
+
+  const btnCancelUser = document.querySelector('.btn-cancel-user');
+  if (btnCancelUser) btnCancelUser.addEventListener('click', closeUserModal);
+
+  const btnCloseModalUser = document.querySelector('.btn-close-modal-user');
+  if (btnCloseModalUser) btnCloseModalUser.addEventListener('click', closeUserModal);
+
+  // Dados section buttons
+  const btnSaveServer = document.getElementById('btn-save-server');
+  if (btnSaveServer) btnSaveServer.addEventListener('click', salvarParaServidor);
+
+  const btnExportJson = document.getElementById('btn-export-json');
+  if (btnExportJson) btnExportJson.addEventListener('click', exportarJSON);
+
+  const btnImportJson = document.getElementById('btn-import-json');
+  if (btnImportJson) btnImportJson.addEventListener('click', importarJSON);
+
+  const btnShowJson = document.getElementById('btn-show-json');
+  if (btnShowJson) btnShowJson.addEventListener('click', mostrarJSON);
+}
+
+// ============================================================
 // INIT ADMIN
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupEventListeners();
   loadAdminData();
   showSection('imoveis');
 });

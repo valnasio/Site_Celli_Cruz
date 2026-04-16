@@ -2,8 +2,6 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const session = require('express-session');
-const crypto = require('crypto');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -42,14 +40,6 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 login attempts per windowMs
-  message: 'Too many login attempts, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 app.use(limiter);
 
 // Middleware de compressão (deve ser primeiro após helmet)
@@ -66,24 +56,6 @@ app.use(compression({
 
 // Middleware
 app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'cellicruz-secret-key-2024', // Use env var
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Secure in production
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
-
-// Middleware de autenticação
-const requireAuth = (req, res, next) => {
-  if (!req.session.adminUser) {
-    return res.status(401).json({ ok: false, error: 'Não autenticado.' });
-  }
-  next();
-};
 
 // Middleware de cache
 app.use((req, res, next) => {
@@ -159,7 +131,7 @@ const upload = multer({
  * POST /api/save
  * Recebe JSON e salva em data/imoveis.json
  */
-app.post('/api/save', requireAuth, (req, res) => {
+app.post('/api/save', (req, res) => {
   try {
     console.log('[SAVE] Recebendo requisição de salvar dados...');
     
@@ -215,7 +187,7 @@ app.post('/api/save', requireAuth, (req, res) => {
  * POST /api/upload
  * Endpoint para upload de arquivos
  */
-app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
+app.post('/api/upload', upload.single('file'), (req, res) => {
   try {
     console.log('[UPLOAD] Recebendo arquivo...');
     
@@ -244,83 +216,11 @@ app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
 });
 
 /**
- * POST /api/login
- * Endpoint para login de admin
- */
-app.post('/api/login', authLimiter, (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ ok: false, error: 'Usuário e senha são obrigatórios.' });
-    }
-
-    const dataPath = path.join(__dirname, 'data', 'imoveis.json');
-    if (!fs.existsSync(dataPath)) {
-      return res.status(500).json({ ok: false, error: 'Dados não encontrados.' });
-    }
-
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-    const users = data.adminUsers || [];
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-    if (!user) {
-      return res.status(401).json({ ok: false, error: 'Usuário ou senha inválidos.' });
-    }
-
-    const hash = crypto.createHash('sha256').update(user.salt + password).digest('hex');
-    if (hash !== user.passwordHash) {
-      return res.status(401).json({ ok: false, error: 'Usuário ou senha inválidos.' });
-    }
-
-    req.session.adminUser = user.username;
-    res.json({ ok: true, message: 'Login realizado com sucesso.' });
-  } catch (error) {
-    console.error('[ERROR] Erro no login:', error.message);
-    res.status(500).json({ ok: false, error: 'Erro interno do servidor.' });
-  }
-});
-
-/**
- * POST /api/logout
- * Endpoint para logout
- */
-app.post('/api/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ ok: false, error: 'Erro ao fazer logout.' });
-    }
-    res.json({ ok: true, message: 'Logout realizado com sucesso.' });
-  });
-});
-
-/**
- * GET /api/check-auth
- * Verifica se o usuário está autenticado
- */
-app.get('/api/check-auth', (req, res) => {
-  if (req.session.adminUser) {
-    res.json({ ok: true, username: req.session.adminUser });
-  } else {
-    res.status(401).json({ ok: false, error: 'Não autenticado.' });
-  }
-});
-
-/**
  * GET /
  * Serve a página index
  */
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-/**
- * GET /pages/admin.html
- * Serve a página admin apenas se autenticado
- */
-app.get('/pages/admin.html', (req, res) => {
-  if (!req.session.adminUser) {
-    return res.redirect('/pages/login.html');
-  }
-  res.sendFile(path.join(__dirname, 'pages', 'admin.html'));
 });
 
 // ============================================================

@@ -46,7 +46,7 @@
     <nav class="nav">
       <a href="index.html" class="nav-link active">Início</a>
       <a href="pages/imoveis.html" class="nav-link">Imóveis</a>
-      <a href="#sobre" class="nav-link">Sobre</a>
+      <a href="pages/sobre.html" class="nav-link">Sobre</a>
       <a href="#contato" class="nav-link">Contato</a>
       <a href="#" class="nav-cta js-whatsapp" onclick="openWhatsAppModal(); return false;"><i class="fas fa-comments"></i> WhatsApp</a>
     </nav>
@@ -68,7 +68,7 @@
       <div class="hero-title-wrapper">
         <div class="hero-title-decoration"></div>
         <h1 class="hero-title">
-          O lar que<br>acompanha<br><span>o seu ritmo.</span>
+          O lugar onde<br>seus planos<br><span>ganham espaço.</span>
         </h1>
         <div class="hero-title-decoration"></div>
       </div>
@@ -127,7 +127,7 @@
 <!-- ============================================================
      DIFERENCIAIS
      ============================================================ -->
-<section class="diferenciais-section full-section" id="sobre">
+<!--<section class="diferenciais-section full-section" id="sobre">
   <div class="container">
     <div class="text-center">
       <p class="section-label">Por que escolher a Celli Cruz</p>
@@ -135,10 +135,10 @@
       <p class="section-subtitle">Cada imóvel é selecionado com critério para oferecer qualidade de vida real.</p>
     </div>
     <div class="dif-grid" id="dif-grid">
-      <!-- Renderizado via JS -->
+      -- Renderizado via JS
     </div>
   </div>
-</section>
+</section> -->
 
 <!-- ============================================================
      VITRINE DE IMÓVEIS
@@ -168,36 +168,33 @@
 <!-- ============================================================
      SEÇÃO SOBRE / EMPRESA
      ============================================================ -->
-<section class="full-section" style="background: var(--cinza-bg);">
+<section id="home-about" class="full-section" style="background: var(--missao-bg);">
   <div class="container">
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;">
+    <div class="home-about-grid">
       <div class="fade-in-up">
-        <p class="section-label">Nossa missão</p>
-        <h2 class="section-title">Mais de uma década conectando famílias ao lar ideal</h2>
-        <p style="color: var(--cinza-texto); font-size: 16px; line-height: 1.8; margin-bottom: 24px;">
-          A Celli Cruz nasceu da paixão pelo mercado imobiliário de Feira de Santana. Com profundo conhecimento local e relacionamento direto com as maiores construtoras da Bahia, somos o parceiro ideal para quem busca um imóvel com segurança e tranquilidade.
-        </p>
-        <p style="color: var(--cinza-texto); font-size: 16px; line-height: 1.8; margin-bottom: 32px;">
-          Nossa equipe de consultores especializados acompanha você em cada etapa — da escolha do imóvel até a entrega das chaves — garantindo a melhor condição de financiamento e o negócio mais seguro.
-        </p>
-        <div style="display: flex; gap: 32px; margin-bottom: 32px;">
-          <div>
-            <div style="font-family: serif; font-size: 36px; font-weight: 900; color: var(--vermelho);">98%</div>
-            <div style="font-size: 13px; color: var(--cinza-texto);">Clientes satisfeitos</div>
-          </div>
-          <div>
-            <div style="font-family: serif; font-size: 36px; font-weight: 900; color: var(--vermelho);">1.200+</div>
-            <div style="font-size: 13px; color: var(--cinza-texto);">Famílias atendidas</div>
-          </div>
-        </div>
-        <a href="#contato" class="btn btn-primary">Falar com um consultor</a>
-      </div>
-      <div class="fade-in-up">
-        <div style="border-radius: var(--radius); overflow: hidden; box-shadow: var(--sombra-hover);">
-          <img src="https://images.unsplash.com/photo-1560520653-9e0e4c89eb11?w=600&q=80" 
-            alt="Consultoria Imobiliária" style="width: 100%; height: 460px; object-fit: cover;">
+        <!--<p class="section-label">Nossa história</p> -->
+        <h2 class="section-title" id="home-about-title">A Celli Cruz mantém o legado de um propósito humano.</h2>
+        <a href="pages/sobre.html" class="btn btn-primary">Conheça nossa história</a>
+        <div class="home-family-message">
+          <span class="quote-mark">“</span>
+          <p>Sergio Henrique transformou um sonho em realidade e sempre acreditou em seus objetivos. Foi um filho exemplar, irmão companheiro, pai presente e, acima de tudo, um ser humano iluminado. Seu legado permanece vivo em cada passo dado pela empresa.</p>
+          <div class="quote-label">Mensagem da Família</div>
         </div>
       </div>
+      <div class="home-about-card">
+        <img src="assets/foto1.jpeg" alt="Foto da história da Celli Cruz" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="home-mission-section full-section">
+  <div class="container">
+    <div class="mission-panel">
+      
+      <h3 class="section-title">NOSSA MISSÃO</h3>
+      <p>Promover oportunidades de moradia com segurança, qualidade e compromisso com o cliente. Cada projeto é pensado para ser um novo lar, com atenção ao detalhe e experiência humana.</p>
+      <p>Preservar o legado de ética, transparência e credibilidade na gestão imobiliária, oferecendo assessoria humana, confiável e dedicada.</p>
     </div>
   </div>
 </section>
@@ -326,7 +323,7 @@
         <h4>Navegação</h4>
         <a href="index.html" class="footer-link">Início</a>
         <a href="pages/imoveis.html" class="footer-link">Imóveis</a>
-        <a href="#sobre" class="footer-link">Sobre nós</a>
+        <a href="pages/sobre.html" class="footer-link">Sobre nós</a>
         <a href="#contato" class="footer-link">Contato</a>
         <a href="pages/admin.html" class="footer-link" style="color: rgba(255,255,255,0.3); font-size: 12px;">Admin</a>
       </div>

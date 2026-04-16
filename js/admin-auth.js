@@ -1,4 +1,3 @@
-const ADMIN_DATA_PATH = window.location.pathname.includes('/pages/') ? '../data/imoveis.json' : './data/imoveis.json';
 const ADMIN_LOGIN_KEY = 'cellicruzAdminSession';
 
 function getBasePath() {
@@ -15,40 +14,28 @@ async function fetchAdminData() {
   return await res.json();
 }
 
-function generateSalt(length = 16) {
-  const array = new Uint8Array(length);
-  window.crypto.getRandomValues(array);
-  return Array.from(array).map(byte => byte.toString(16).padStart(2, '0')).join('').slice(0, length);
-}
-
 async function hashPassword(password, salt) {
   const encoder = new TextEncoder();
   const data = encoder.encode(salt + password);
-  
-  // ✅ Verifica se crypto.subtle está disponível
+
   if (!window.crypto || !window.crypto.subtle) {
-    console.warn('crypto.subtle não disponível, usando fallback simples');
-    // Fallback: hash simples (menos seguro mas funciona em qualquer ambiente)
     return simpleHash(salt + password);
   }
-  
+
   try {
     const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
   } catch (err) {
-    console.warn('Erro ao usar crypto.subtle:', err);
-    // Fallback se houver erro
     return simpleHash(salt + password);
   }
 }
 
-// ✅ Hash simples de fallback (não é tão seguro mas funciona em qualquer lugar)
 function simpleHash(str) {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) + hash) + str.charCodeAt(i);
-    hash = hash & hash; // Converter para 32-bit integer
+    hash = hash & hash;
   }
   return Math.abs(hash).toString(16);
 }
@@ -76,8 +63,19 @@ function getAdminSession() {
   try {
     const raw = sessionStorage.getItem(ADMIN_LOGIN_KEY);
     if (!raw) return null;
-    const session = JSON.parse(raw);
-    if (!session.username || !session.token || !session.expires) return null;
+
+    let session = null;
+    try {
+      session = JSON.parse(raw);
+    } catch (parseError) {
+      console.warn('Admin session inválida, removendo valor antigo.', parseError);
+      sessionStorage.removeItem(ADMIN_LOGIN_KEY);
+      return null;
+    }
+
+    if (!session || !session.username || !session.token || !session.expires) {
+      return null;
+    }
     if (Date.now() > session.expires) {
       clearAdminSession();
       return null;
@@ -88,41 +86,40 @@ function getAdminSession() {
   }
 }
 
-async function isAdminAuthenticated() {
-  try {
-    const response = await fetch('/api/check-auth');
-    const data = await response.json();
-    return data.ok;
-  } catch {
-    return false;
+async function verifyAdminCredentials(username, password) {
+  const data = await fetchAdminData();
+  const users = data.adminUsers || [];
+  const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  if (!user) {
+    throw new Error('Usuário ou senha inválidos.');
   }
-}
 
-async function logoutAdmin() {
-  try {
-    await fetch('/api/logout', { method: 'POST' });
-  } catch (err) {
-    console.warn('Erro ao fazer logout no servidor:', err);
+  const hash = await hashPassword(password, user.salt || '');
+  if (hash !== user.passwordHash) {
+    throw new Error('Usuário ou senha inválidos.');
   }
-  const redirectPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
-  window.location.href = redirectPath;
+
+  return user;
 }
 
 async function loginAdmin(username, password) {
-  const response = await fetch('/api/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ username, password }),
-  });
-
-  const data = await response.json();
-  if (!data.ok) {
-    throw new Error(data.error);
+  if (!username || !password) {
+    throw new Error('Usuário e senha são obrigatórios.');
   }
 
-  return data;
+  const user = await verifyAdminCredentials(username, password);
+  saveAdminSession(user.username);
+  return { ok: true, username: user.username };
+}
+
+function isAdminAuthenticated() {
+  return !!getAdminSession();
+}
+
+function logoutAdmin() {
+  clearAdminSession();
+  const redirectPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
+  window.location.href = redirectPath;
 }
 
 async function initLoginForm() {
@@ -145,8 +142,8 @@ async function initLoginForm() {
   });
 }
 
-async function requireAdminLogin() {
-  if (!(await isAdminAuthenticated())) {
+function requireAdminLogin() {
+  if (!isAdminAuthenticated()) {
     const redirectPath = window.location.pathname.includes('/pages/') ? 'login.html' : 'pages/login.html';
     window.location.href = redirectPath;
     return false;
@@ -154,19 +151,14 @@ async function requireAdminLogin() {
   return true;
 }
 
-async function getAuthenticatedAdminUsername() {
-  try {
-    const response = await fetch('/api/check-auth');
-    const data = await response.json();
-    return data.ok ? data.username : null;
-  } catch {
-    return null;
-  }
+function getAuthenticatedAdminUsername() {
+  const session = getAdminSession();
+  return session ? session.username : null;
 }
 
 if (window.location.pathname.endsWith('/login.html')) {
   document.addEventListener('DOMContentLoaded', async () => {
-    if (await isAdminAuthenticated()) {
+    if (isAdminAuthenticated()) {
       window.location.href = 'admin.html';
       return;
     }
@@ -176,8 +168,8 @@ if (window.location.pathname.endsWith('/login.html')) {
 
 if (window.location.pathname.endsWith('/admin.html')) {
   document.addEventListener('DOMContentLoaded', async () => {
-    if (!(await requireAdminLogin())) return;
-    const username = await getAuthenticatedAdminUsername();
+    if (!requireAdminLogin()) return;
+    const username = getAuthenticatedAdminUsername();
     const userLabel = document.getElementById('admin-user-name');
     if (userLabel && username) userLabel.textContent = username;
   });

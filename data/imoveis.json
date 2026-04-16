@@ -7,9 +7,57 @@
     "whatsappAtendimento": "5575999371939",
     "email": "contato@cellicruz.com.br",
     "endereco": "Rua Newton Vieira Rique, 18, São João, Feira de Santana - BA, 44051-340",
-    "heroChamada": "O lar que acompanha o seu ritmo.",
+    "heroChamada": "O lugar onde seus planos ganham espaço",
     "heroSubtitulo": "Encontre os melhores imóveis em Feira de Santana com a Celli Cruz.",
     "googleMapsEmbed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3905.234567890123!2d-38.9612345!3d-12.2523456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTLCsDE1JzA4LjQiUyAzOMKwNTcnNDAuNCJX!5e0!3m2!1spt-BR!2sbr!4v1234567890"
+  },
+  "about": {
+    "aboutTitle": "Nossa história",
+    "aboutSubtitle": "Da origem ao legado da Celli Cruz, uma trajetória de ética e propósito.",
+    "aboutDescription": "NOSSA HISTÓRIA\n\nUm sonho que se transformou em realidade quando o empresário Sergio Henrique Silva Cruz fundou em 2019 a ACERT ASSESSORIA IMOBILIARIA, empresa essa com “expertise” na gestão e administração imobiliária principalmente no seguimento de loteamentos urbanos, foi na época um grande desafio adentrar neste mercado onde já existiam concorrentes mais antigos e já posicionados neste nicho de mercado, mais Sergio Henrique seguiu firme apostando e confiando no seu propósito em oferecer um serviço de excelência pautado principalmente pela “Transparência e Credibilidade“ nas parcerias que ele estava firmando transformando a ACERT em uma empresa confiável e competitiva para os futuros parceiros/investidores. Em Janeiro de 2024 a ARCET muda seu contrato social e passa a se chamar HCRUZ CONSTRUÇÔES E GESTÃO IMOBILIARIA, essa mudança foi um salto para o planejamento futuro e crescimento da empresa que passou a atuar também em Obras de Urbanização, adm. De obras e ampliação na área de gestão administrativa e Assessoria de loteamentos consolidando de vez a HCRUZ no mercado de Feira de Santana e região. Esse ano de 2024 apesar de ser marcado de forma positiva pelo reposicionamento e crescimento da HCRUZ também foi um ano de desafios na área pessoal e na saúde para Sergio Henrique que foi diagnosticado com um tumor (CA) na região do intestino e após uma batalha incansável por mais de dois anos na busca da cura infelizmente ele veio a falecer no dia 06 de Março 2026, foi uma perda irreparável para seus familiares em especial para sua mãe Juciana Cruz que era seu braço direito e fiel escudeira tanto na empresa quanto no período de convalescência até sua morte.\n\nAinda durante o tratamento Sergio Henrique tinha uma preocupação e fez um pedido em especial ao seu pai, mãe e irmã, que não deixassem seu legado acabar principalmente a empresa que ele fundou e trabalhou arduamente para chegar onde chegou e assim atendendo esse pedido de Sergio Henrique sua família se uniu em um proposito de manter vivo e atuante seu legado seguindo a risca as principais características que sempre moldaram o perfil e personalidade de Sergio Henrique como “Ética, transparência e credibilidade“ na condução das parcerias firmadas por ele. Assim em Março de 2026 a HCRUZ passou a se chamar CELLI CRUZ ASSESSORIA IMOBILIARIA, mantendo todas as diretrizes e Critérios éticos e administrativos que Sergio Henrique sempre pregou em sua trajetória empresarial.\n\nA CELLI CRUZ tem no seu organograma atual três Diretores distribuídos nas seguintes áreas da empresa, Juciana Cruz (Diretora Administrativa), Carolina Celli Cruz (Diretora Financeira), Sergio Cruz (Diretor Comercial).\n\nMensagem da Família:\n\nSergio Henrique transformou um sonho em realidade e acreditou sempre em seus objetivos, filho exemplar, irmão companheiro, pai presente e amoroso, SER HUMANO ILUMINADO!!!",
+    "aboutSummary": "A Celli Cruz nasce do legado de Sergio Henrique Silva Cruz, mantendo ética, transparência e credibilidade. Hoje a empresa segue atuando em Feira de Santana com foco em famílias, investidores e parceiros, preservando um compromisso humano e confiável.",
+    "aboutMissionTitle": "Nossa missão",
+    "aboutMissionText": "Preservar o legado de ética, transparência e credibilidade na gestão imobiliária, oferecendo assessoria humana, confiável e dedicada.",
+    "missionGallery": [
+      "assets/uploads/Image_Editing.png",
+      "assets/uploads/pexels-snapwire-618608-1024x683.jpg",
+      "assets/uploads/post_thumbnail-234c136d094ceb3451da6c0488a5da34-1.jpeg",
+      "assets/uploads/post_thumbnail-234c136d094ceb3451da6c0488a5da34-2.jpeg"
+    ],
+    "missionCarousel": [
+      {
+        "id": 1,
+        "title": "Legado Celli Cruz",
+        "subtitle": "Transparência e confiança em cada projeto.",
+        "imageDesktop": "assets/uploads/Image_Editing.png",
+        "image": "assets/uploads/Image_Editing.png",
+        "imageSource": "upload"
+      },
+      {
+        "id": 2,
+        "title": "Família e compromisso",
+        "subtitle": "Cuidando do legado de quem acreditou no sonho.",
+        "imageDesktop": "assets/uploads/pexels-snapwire-618608-1024x683.jpg",
+        "image": "assets/uploads/pexels-snapwire-618608-1024x683.jpg",
+        "imageSource": "upload"
+      },
+      {
+        "id": 3,
+        "title": "Crescimento sustentado",
+        "subtitle": "Construindo histórias com ética e credibilidade.",
+        "imageDesktop": "assets/uploads/post_thumbnail-234c136d094ceb3451da6c0488a5da34-1.jpeg",
+        "image": "assets/uploads/post_thumbnail-234c136d094ceb3451da6c0488a5da34-1.jpeg",
+        "imageSource": "upload"
+      },
+      {
+        "id": 4,
+        "title": "Visão de futuro",
+        "subtitle": "A família continua o propósito com força e união.",
+        "imageDesktop": "assets/uploads/post_thumbnail-234c136d094ceb3451da6c0488a5da34-2.jpeg",
+        "image": "assets/uploads/post_thumbnail-234c136d094ceb3451da6c0488a5da34-2.jpeg",
+        "imageSource": "upload"
+      }
+    ]
   },
   "carousel": [
     {

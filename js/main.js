@@ -523,6 +523,26 @@ function renderDiferenciais(container) {
   `).join('');
 }
 
+function renderHomeAbout(about) {
+  if (!about) return;
+
+  const titleEl = document.getElementById('home-about-title');
+  const summaryEl = document.getElementById('home-about-summary');
+  const summaryEl2 = document.getElementById('home-about-summary-2');
+  const mosaic = document.getElementById('home-about-mosaic');
+
+  if (titleEl) titleEl.textContent = about.aboutTitle || 'Nossa história';
+  if (summaryEl) summaryEl.textContent = about.aboutSummary || 'A Celli Cruz nasceu do legado de Sergio Henrique Silva Cruz e mantém ética, transparência e credibilidade em cada atendimento.';
+  if (summaryEl2) summaryEl2.textContent = about.aboutMissionText || 'Preservamos um legado de confiança e serviço humano em Feira de Santana.';
+
+  const images = about.missionGallery || [];
+  if (mosaic && images.length > 0) {
+    mosaic.innerHTML = images.slice(0, 4).map((src, idx) => `
+      <div class="mission-mosaic-item"><img src="${resolveMediaPath(src)}" alt="Galeria missão ${idx + 1}"></div>
+    `).join('');
+  }
+}
+
 function renderCarousel(container, items) {
   if (!container) return;
   if (!items || items.length === 0) {
@@ -690,6 +710,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Diferenciais
   const difGrid = document.getElementById('dif-grid');
   if (difGrid) renderDiferenciais(difGrid);
+
+  // Resumo do Sobre na home
+  const homeAboutSection = document.getElementById('home-about');
+  if (homeAboutSection && dados) {
+    renderHomeAbout(dados.about || {});
+  }
 
   // Config dinâmica (WhatsApp, telefone, etc.)
   if (dados) {

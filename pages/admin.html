@@ -72,22 +72,22 @@
     </div>
     <nav class="sidebar-nav">
       <p class="sidebar-label">Principal</p>
-      <a href="#" class="sidebar-link active" data-section="imoveis" onclick="showSection('imoveis'); return false;">
+      <a href="#" class="sidebar-link active" data-section="imoveis">
         <i class="fas fa-home"></i> <span>Imóveis</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="config" onclick="showSection('config'); return false;">
+      <a href="#" class="sidebar-link" data-section="config">
         <i class="fas fa-cog"></i> <span>Configurações</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="usuarios" onclick="showSection('usuarios'); return false;">
+      <a href="#" class="sidebar-link" data-section="usuarios">
         <i class="fas fa-users"></i> <span>Usuários</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="carousel" onclick="showSection('carousel'); return false;">
+      <a href="#" class="sidebar-link" data-section="carousel">
         <i class="fas fa-image"></i> <span>Carrossel</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="dados" onclick="showSection('dados'); return false;">
+      <a href="#" class="sidebar-link" data-section="dados">
         <i class="fas fa-database"></i> <span>Importar / Exportar</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="ajuda" onclick="showSection('ajuda'); return false;">
+      <a href="#" class="sidebar-link" data-section="ajuda">
         <i class="fas fa-question-circle"></i> <span>Ajuda & Documentação</span>
       </a>
 
@@ -118,7 +118,7 @@
         <a href="../index.html" target="_blank" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;">
           <i class=\"fas fa-globe\"></i> Ver Site
         </a>
-        <button class="btn btn-outline" onclick="logoutAdmin()" style="padding: 8px 16px; font-size: 13px;">
+        <button id="btn-logout" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;">
           <i class="fas fa-sign-out-alt"></i> Sair
         </button>
       </div>
@@ -168,7 +168,7 @@
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
               <input type="text" id="search-imovel" placeholder="Buscar imóvel..." 
                 style="padding: 8px 14px; border: 1.5px solid var(--cinza-borda); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; width: 200px;">
-              <button class="btn btn-primary" onclick="openNovo()" style="padding: 9px 18px; font-size: 14px;">
+              <button id="btn-new-imovel" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
                 + Novo Imóvel
               </button>
             </div>
@@ -202,7 +202,7 @@
           <div class="panel-header">
             <h3>Configurações do Site</h3>
             <div style="display: flex; gap: 10px;">
-              <button class="btn btn-primary" onclick="salvarConfig()" style="padding: 9px 18px; font-size: 14px;">
+              <button id="btn-save-config" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
                 <i class="fas fa-save"></i> Salvar Configurações
               </button>
             </div>
@@ -242,6 +242,26 @@
                   <label>Subtítulo do Hero</label>
                   <input type="text" name="heroSubtitulo" placeholder="Encontre os melhores imóveis...">
                 </div>
+                <div class="form-group full-width">
+                  <label>Título da página Sobre</label>
+                  <input type="text" name="aboutTitle" placeholder="Quem somos">
+                </div>
+                <div class="form-group full-width">
+                  <label>Subtítulo da página Sobre</label>
+                  <input type="text" name="aboutSubtitle" placeholder="A Celli Cruz conecta sua família ao melhor imóvel.">
+                </div>
+                <div class="form-group full-width">
+                  <label>Descrição da página Sobre</label>
+                  <textarea name="aboutDescription" rows="4" placeholder="Adicione o texto de apresentação da empresa. Esta descrição aparece na página Sobre."></textarea>
+                </div>
+                <div class="form-group full-width">
+                  <label>Título da seção Missão</label>
+                  <input type="text" name="aboutMissionTitle" placeholder="Nossa missão">
+                </div>
+                <div class="form-group full-width">
+                  <label>Texto da seção Missão</label>
+                  <textarea name="aboutMissionText" rows="4" placeholder="Explique a missão da empresa e destaque os valores."></textarea>
+                </div>
               </div>
             </form>
           </div>
@@ -255,7 +275,7 @@
         <div class="admin-panel">
           <div class="panel-header">
             <h3>Carrossel de Publicidade</h3>
-            <button class="btn btn-primary" onclick="openNewCarouselItem()" style="padding: 9px 18px; font-size: 14px;">
+            <button id="btn-new-carousel" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
               + Novo Slide
             </button>
           </div>
@@ -289,7 +309,7 @@
         <div class="admin-panel">
           <div class="panel-header">
             <h3>Usuários Admin</h3>
-            <button class="btn btn-primary" onclick="openUserModal()" style="padding: 9px 18px; font-size: 14px;">
+            <button id="btn-new-user" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
               + Novo Usuário
             </button>
           </div>
@@ -336,17 +356,17 @@
               <div style="background: #d1fae5; border-radius: var(--radius); padding: 24px;">
                 <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-save"></i> Salvar no Servidor</h4>
                 <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Exporta e salva automaticamente no arquivo <code>data/imoveis.json</code>.</p>
-                <button class="btn btn-primary" onclick="salvarParaServidor()" style="background: #10b981; border-color: #10b981;"><i class="fas fa-save"></i> Salvar Alterações</button>
+                <button id="btn-save-server" class="btn btn-primary" style="background: #10b981; border-color: #10b981;"><i class="fas fa-save"></i> Salvar Alterações</button>
               </div>
               <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
                 <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-upload"></i> Exportar</h4>
                 <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Baixa o arquivo JSON com todas as alterações feitas nesta sessão.</p>
-                <button class="btn btn-primary" onclick="exportarJSON()"><i class="fas fa-download"></i> Baixar imoveis.json</button>
+                <button id="btn-export-json" class="btn btn-primary"><i class="fas fa-download"></i> Baixar imoveis.json</button>
               </div>
               <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
                 <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-folder-open"></i> Importar</h4>
                 <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Carrega um arquivo JSON para substituir os dados atuais.</p>
-                <button class="btn btn-outline" onclick="importarJSON()"><i class="fas fa-file-import"></i> Selecionar arquivo JSON</button>
+                <button id="btn-import-json" class="btn btn-outline"><i class="fas fa-file-import"></i> Selecionar arquivo JSON</button>
               </div>
             </div>
 
@@ -354,7 +374,7 @@
               <h4 style="color: var(--azul-escuro); margin-bottom: 12px;"><i class="fas fa-file-code"></i> JSON Atual (para copiar)</h4>
               <div class="log-area" id="json-preview">Clique em "Ver JSON atual" para visualizar.</div>
               <br>
-              <button class="btn btn-outline" onclick="mostrarJSON()"><i class="fas fa-eye"></i> Ver JSON atual</button>
+              <button id="btn-show-json" class="btn btn-outline"><i class="fas fa-eye"></i> Ver JSON atual</button>
             </div>
           </div>
         </div>
@@ -452,7 +472,7 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-titulo">Novo Imóvel</h3>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <button class="modal-close btn-close-modal-imovel">&times;</button>
     </div>
     <div class="modal-body">
       <form id="form-imovel">
@@ -546,7 +566,7 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
           <div id="comodos-list" style="margin-bottom: 12px;">
             <!-- Cômodos serão renderizados aqui -->
           </div>
-          <button type="button" class="btn btn-outline" onclick="adicionarComodo()" style="font-size: 13px; padding: 8px 12px;">
+          <button type="button" id="btn-add-comodo" class="btn btn-outline" style="font-size: 13px; padding: 8px 12px;">
             + Adicionar Cômodo
           </button>
         </div>
@@ -559,8 +579,8 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarImovel()"><i class="fas fa-floppy-disk"></i> Salvar Imóvel</button>
+      <button class="btn btn-outline btn-cancel-imovel">Cancelar</button>
+      <button id="btn-save-imovel" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Salvar Imóvel</button>
     </div>
   </div>
 </div>
@@ -569,7 +589,7 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-carousel-title">Novo Slide</h3>
-      <button class="modal-close" onclick="closeCarouselModal()">&times;</button>
+      <button class="modal-close btn-close-modal-carousel">&times;</button>
     </div>
     <div class="modal-body">
       <form id="form-carousel-item">
@@ -623,8 +643,8 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeCarouselModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveCarouselItem()"><i class="fas fa-floppy-disk"></i> Salvar Slide</button>
+      <button class="btn btn-outline btn-cancel-carousel">Cancelar</button>
+      <button id="btn-save-carousel" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Salvar Slide</button>
     </div>
   </div>
 </div>
@@ -633,7 +653,7 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
   <div class="modal">
     <div class="modal-header">
       <h3 id="modal-user-title">Novo Usuário</h3>
-      <button class="modal-close" onclick="closeUserModal()">&times;</button>
+      <button class="modal-close btn-close-modal-user">&times;</button>
     </div>
     <div class="modal-body">
       <form id="form-user-item">
@@ -658,8 +678,8 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeUserModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveUser()"><i class="fas fa-floppy-disk"></i> Salvar Usuário</button>
+      <button class="btn btn-outline btn-cancel-user">Cancelar</button>
+      <button id="btn-save-user" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Salvar Usuário</button>
     </div>
   </div>
 </div>
