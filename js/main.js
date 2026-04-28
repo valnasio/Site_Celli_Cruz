@@ -228,10 +228,32 @@ function criarCardImovel(imovel) {
 
 function renderImoveisDestaque(imoveis, container) {
   if (!container) return;
-  const destaques = (imoveis || []).filter((item) => item.destaque).slice(0, 3);
+  const destaques = (imoveis || []).filter((item) => item.destaque);
   container.innerHTML = destaques.length
     ? destaques.map((item) => criarCardImovel(item)).join('')
-    : '<div style="grid-column: 1/-1; text-align: center; padding: 48px; color: var(--cinza-texto);">Nenhum imovel em destaque cadastrado.</div>';
+    : '<div style="text-align: center; padding: 48px; color: var(--cinza-texto); width: 100%;">Nenhum loteamento em destaque cadastrado.</div>';
+
+  initVitrineNavigation(container);
+}
+
+function initVitrineNavigation(container) {
+  const parent = container.closest('.vitrine-carousel-container');
+  if (!parent) return;
+
+  const btnPrev = parent.querySelector('.vitrine-nav.prev');
+  const btnNext = parent.querySelector('.vitrine-nav.next');
+
+  if (btnPrev && btnNext) {
+    btnNext.addEventListener('click', () => {
+      const cardWidth = container.querySelector('.imovel-card')?.offsetWidth || 300;
+      container.scrollBy({ left: cardWidth + 28, behavior: 'smooth' });
+    });
+
+    btnPrev.addEventListener('click', () => {
+      const cardWidth = container.querySelector('.imovel-card')?.offsetWidth || 300;
+      container.scrollBy({ left: -(cardWidth + 28), behavior: 'smooth' });
+    });
+  }
 }
 
 function renderHomeAbout(about) {

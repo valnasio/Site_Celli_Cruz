@@ -40,8 +40,8 @@
       "id": 1,
       "username": "admin",
       "name": "Administrador",
-      "passwordHash": "688cc0411139654000ed84e8f63a4f7f68f72c5478822a5e45f49297188f1dfc",
-      "salt": "q9Y7tK1sXb4Fv2cM"
+      "passwordHash": "2b4de078f951205ae45e8fb4e082e632efd5335ef5afba3bfd4ab6f18b3ed188",
+      "salt": "9e4118dc55cd544534825fadb33fd95f"
     }
   ],
   "imoveis": [
@@ -99,10 +99,12 @@
       "nome": "Loteamento Vale do Sol",
       "bairro": "Papagaio",
       "cidade": "Feira de Santana - Bahia",
+      "quartos": 2,
       "metragem": "200",
       "descricao": "Lotes planos prontos para construir no vetor de crescimento da cidade. Infraestrutura de água, luz e pavimentação.",
-      "tag": "Lotes de 200m²",
+      "tag": "Entrega agendada",
       "imagem": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&q=80",
+      "imagemSource": "url",
       "imagemGaleria": [
         "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&q=80"
       ],
@@ -111,13 +113,11 @@
         "Asfalto",
         "Água Encanada"
       ],
-      "plantas": [],
       "localizacao": "Papagaio, Feira de Santana, BA",
       "mapsLink": "",
-      "status": "",
-      "comodos": [],
-      "quartos": 2,
-      "imagemSource": "url"
+      "status": "Lançamento",
+      "plantas": [],
+      "comodos": []
     },
     {
       "id": 4,
@@ -142,5 +142,18 @@
       "comodos": []
     }
   ],
-  "whatsappOptions": []
+  "whatsappOptions": [
+    {
+      "id": 1777394009564,
+      "title": "Atendimento",
+      "description": "Dúvidas",
+      "whatsapp": "75989998899"
+    },
+    {
+      "id": 1777394049686,
+      "title": "Vendas",
+      "description": "Orçamentos",
+      "whatsapp": "7556655556"
+    }
+  ]
 }

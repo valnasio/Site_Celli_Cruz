@@ -1,5 +1,5 @@
 /**
- * Admin runtime backed by Supabase.
+ * Admin runtime using local JSON API.
  */
 
 let appData = {
@@ -42,8 +42,8 @@ function setAppData(nextData) {
 
 
 function resolveAdminMediaPath(src) {
-  return typeof window.resolveSupabaseAssetUrl === 'function'
-    ? window.resolveSupabaseAssetUrl(src)
+  return typeof window.resolveAssetUrl === 'function'
+    ? window.resolveAssetUrl(src)
     : src;
 }
 
@@ -313,7 +313,7 @@ async function resolveImageFieldValue(form, fieldName, folder) {
 
   const file = form.querySelector(`[name="${fieldName}File"]`)?.files?.[0];
   if (file) {
-    const value = await window.uploadSupabaseFile(file, folder);
+    const value = await window.uploadFile(file, folder);
     return { value, source: 'upload' };
   }
 
@@ -591,13 +591,13 @@ async function addComodoPhoto(id) {
     if (!file) return;
 
     try {
-      const objectPath = await window.uploadSupabaseFile(file, 'imoveis/comodos');
+      const objectPath = await window.uploadFile(file, 'imoveis/comodos');
       const target = comodoDrafts.find((item) => item.id === Number(id));
       if (target) {
         target.fotos = [...(target.fotos || []), objectPath];
       }
       renderComodosList();
-      showAdminToast('Foto enviada para o Supabase Storage.');
+      showAdminToast('Foto enviada com sucesso.');
     } catch (error) {
       showAdminToast(error.message, 'error');
     }

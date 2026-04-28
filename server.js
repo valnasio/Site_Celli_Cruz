@@ -12,11 +12,15 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 const DATA_PATH = path.join(__dirname, 'data', 'imoveis.json');
 
-// Garantir que a pasta de uploads existe
+// Garantir que as pastas existam
 const UPLOADS_DIR = path.join(__dirname, 'assets', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
+const DATA_DIR = path.join(__dirname, 'data');
+
+[UPLOADS_DIR, DATA_DIR].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 // Configuração do Multer para uploads locais
 const storage = multer.diskStorage({

@@ -152,12 +152,15 @@
       </div>
       <a href="pages/imoveis.html" class="btn btn-outline">Ver todos os imóveis <i class="fas fa-arrow-right"></i></a>
     </div>
-    <div class="imoveis-grid" id="vitrine-imoveis">
-      <!-- Carregado via JS -->
-      <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--cinza-texto);">
-        <div style="font-size: 32px; margin-bottom: 12px;"></div>
-        <p>Carregando imóveis...</p>
+    <div class="vitrine-carousel-container">
+      <div class="imoveis-grid-scroll" id="vitrine-imoveis">
+        <!-- Carregado via JS -->
+        <div style="text-align: center; padding: 60px; color: var(--cinza-texto); width: 100%;">
+          <p>Carregando imóveis...</p>
+        </div>
       </div>
+      <button class="vitrine-nav prev" aria-label="Anterior"><i class="fas fa-chevron-left"></i></button>
+      <button class="vitrine-nav next" aria-label="Próximo"><i class="fas fa-chevron-right"></i></button>
     </div>
     <div style="text-align: center; margin-top: 40px;">
       <a href="pages/imoveis.html" class="btn btn-primary">Ver mais imóveis <i class="fas fa-arrow-right"></i></a>
@@ -369,7 +372,7 @@
 
 <!-- Supabase Removido -->
 <script src="/api/runtime-config.js" defer></script>
-<script src="js/supabase-client.js" defer></script>
+<script src="js/data-api.js" defer></script>
 <script src="js/main.js" defer></script>
 
 <!-- Service Worker para cache offline -->

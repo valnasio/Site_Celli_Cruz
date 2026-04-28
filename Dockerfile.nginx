@@ -4,7 +4,8 @@ RUN apk add --no-cache openssl certbot \
     && mkdir -p /var/www/certbot /etc/nginx/ssl /etc/letsencrypt
 
 COPY nginx-entrypoint.sh /docker-entrypoint.d/nginx-entrypoint.sh
-RUN chmod +x /docker-entrypoint.d/nginx-entrypoint.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.d/nginx-entrypoint.sh \
+    && chmod +x /docker-entrypoint.d/nginx-entrypoint.sh
 
 EXPOSE 80 443
 ENTRYPOINT ["/docker-entrypoint.d/nginx-entrypoint.sh"]

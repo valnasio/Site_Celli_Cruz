@@ -40,107 +40,105 @@
       "id": 1,
       "username": "admin",
       "name": "Administrador",
-      "passwordHash": "688cc0411139654000ed84e8f63a4f7f68f72c5478822a5e45f49297188f1dfc",
-      "salt": "q9Y7tK1sXb4Fv2cM"
+      "passwordHash": "2b4de078f951205ae45e8fb4e082e632efd5335ef5afba3bfd4ab6f18b3ed188",
+      "salt": "9e4118dc55cd544534825fadb33fd95f"
     }
   ],
   "imoveis": [
     {
       "id": 1,
-      "tipo": "casa",
+      "tipo": "terreno",
       "destaque": true,
-      "nome": "Sândalo Residence",
+      "nome": "Loteamento Mirante do Sol",
       "bairro": "Papagaio",
       "cidade": "Feira de Santana - Bahia",
-      "quartos": 2,
-      "metragem": "36,30",
-      "descricao": "Moderno condomínio com infraestrutura completa de lazer, localizado no bairro Papagaio. Apartamentos de 2 quartos com varanda.",
-      "tag": "Lançamento",
-      "imagem": "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&q=80",
+      "metragem": "200",
+      "descricao": "Lotes residenciais com infraestrutura completa, prontos para você construir a casa dos seus sonhos em um dos bairros que mais cresce.",
+      "tag": "Pronta Entrega",
+      "imagem": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
       "imagemGaleria": [],
       "diferenciais": [
-        "Piscina",
-        "Academia",
-        "Segurança 24h"
+        "Asfalto",
+        "Energia Elétrica",
+        "Água Encanada",
+        "Iluminação em LED"
       ],
       "plantas": [],
       "localizacao": "Papagaio, Feira de Santana, BA",
       "mapsLink": "",
-      "status": "Lançamento",
+      "status": "Pronta Entrega",
       "comodos": []
     },
     {
       "id": 2,
-      "tipo": "casa",
+      "tipo": "terreno",
       "destaque": true,
-      "nome": "Acqua Venture América",
-      "bairro": "América",
+      "nome": "Residencial Vale Verde",
+      "bairro": "SIM",
       "cidade": "Feira de Santana - Bahia",
-      "quartos": 2,
-      "metragem": "36,30",
-      "descricao": "Residencial com conceito aquático, localizado no bairro América. Projeto moderno com excelente acabamento.",
+      "metragem": "250",
+      "descricao": "Oportunidade exclusiva de investimento em lotes com ampla área verde e lazer planejado. Excelente topografia.",
       "tag": "Em Obras",
-      "imagem": "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=80",
+      "imagem": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",
       "imagemGaleria": [],
       "diferenciais": [
-        "Piscina",
-        "Espaço Gourmet"
+        "Pista de Caminhada",
+        "Área de Preservação",
+        "Portaria 24h"
       ],
       "plantas": [],
-      "localizacao": "América, Feira de Santana, BA",
+      "localizacao": "Bairro SIM, Feira de Santana, BA",
       "mapsLink": "",
-      "status": "Em Obras",
+      "status": "Em Obras de Infraestrutura",
       "comodos": []
     },
     {
       "id": 3,
       "tipo": "terreno",
       "destaque": true,
-      "nome": "Loteamento Vale do Sol",
-      "bairro": "Papagaio",
+      "nome": "Parque das Palmeiras",
+      "bairro": "Artemia Pires",
       "cidade": "Feira de Santana - Bahia",
-      "metragem": "200",
-      "descricao": "Lotes planos prontos para construir no vetor de crescimento da cidade. Infraestrutura de água, luz e pavimentação.",
-      "tag": "Lotes de 200m²",
-      "imagem": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&q=80",
-      "imagemGaleria": [
-        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&q=80"
-      ],
+      "metragem": "300",
+      "descricao": "Lotes de alto padrão em condomínio fechado. Localização privilegiada com fácil acesso a serviços e comércio.",
+      "tag": "Últimas Unidades",
+      "imagem": "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=800&q=80",
+      "imagemGaleria": [],
       "diferenciais": [
-        "Rede Elétrica",
-        "Asfalto",
-        "Água Encanada"
+        "Piscina",
+        "Salão de Festas",
+        "Quadra Poliesportiva"
       ],
       "plantas": [],
-      "localizacao": "Papagaio, Feira de Santana, BA",
+      "localizacao": "Avenida Artemia Pires, Feira de Santana, BA",
       "mapsLink": "",
-      "status": "",
-      "comodos": [],
-      "quartos": 2,
-      "imagemSource": "url"
+      "status": "Pronta Entrega",
+      "comodos": []
     },
     {
       "id": 4,
       "tipo": "terreno",
       "destaque": true,
-      "nome": "Parque das Águas Lotes",
-      "bairro": "América",
+      "nome": "Loteamento Nova Feira",
+      "bairro": "Tomba",
       "cidade": "Feira de Santana - Bahia",
-      "metragem": "300",
-      "descricao": "Oportunidade única de investimento em lotes residenciais com área verde preservada.",
-      "tag": "Últimas Unidades",
-      "imagem": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80",
+      "metragem": "160",
+      "descricao": "Lotes acessíveis com parcelamento facilitado. Ideal para quem busca sair do aluguel e construir com segurança.",
+      "tag": "Lançamento",
+      "imagem": "https://images.unsplash.com/photo-1502082553245-f0bc5a6f7945?w=800&q=80",
       "imagemGaleria": [],
       "diferenciais": [
-        "Área Verde",
-        "Ciclovia"
+        "Meio-fio",
+        "Drenagem Pluvial",
+        "Rede de Esgoto"
       ],
       "plantas": [],
-      "localizacao": "América, Feira de Santana, BA",
+      "localizacao": "Tomba, Feira de Santana, BA",
       "mapsLink": "",
-      "status": "Em Obras",
+      "status": "Em Obras de Infraestrutura",
       "comodos": []
     }
-  ],
+  ]
+,
   "whatsappOptions": []
 }
