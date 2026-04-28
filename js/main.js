@@ -138,7 +138,7 @@ function initHeader() {
 }
 
 function initAnimations() {
-  const elements = document.querySelectorAll('.fade-in-up');
+  const elements = document.querySelectorAll('.fade-in-up, .reveal');
   if (!elements.length) return;
 
   const observer = new IntersectionObserver((entries) => {
@@ -147,10 +147,13 @@ function initAnimations() {
       entry.target.classList.add('visible');
       observer.unobserve(entry.target);
     });
-  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
 
   elements.forEach((element, index) => {
-    element.style.transitionDelay = `${index * 0.07}s`;
+    // Only apply staggered delay if not already set
+    if (!element.classList.contains('full-section') && !element.style.transitionDelay) {
+      element.style.transitionDelay = `${(index % 8) * 0.1}s`;
+    }
     observer.observe(element);
   });
 }
@@ -198,6 +201,10 @@ function verImovel(id) {
 }
 
 function criarCardImovel(imovel) {
+  const isTerreno = String(imovel.tipo).toLowerCase() === 'terreno';
+  const specLabel = isTerreno ? 'Loteamento' : `${sanitizeString(String(imovel.quartos || 0))} Quartos`;
+  const metragemLabel = isTerreno ? `Lotes de ${sanitizeString(imovel.metragem || '-')} m2` : `A partir de ${sanitizeString(imovel.metragem || '-')} m2`;
+
   return `
     <div class="imovel-card fade-in-up" onclick="verImovel(${imovel.id})">
       <div class="imovel-card-img">
@@ -208,8 +215,8 @@ function criarCardImovel(imovel) {
         <p class="imovel-cidade">${sanitizeString(imovel.cidade || '')}</p>
         <h3 class="imovel-nome">${sanitizeString(imovel.nome || '')}</h3>
         <div class="imovel-specs">
-          <span class="spec">${sanitizeString(String(imovel.quartos || 0))} Quartos</span>
-          <span class="spec">A partir de ${sanitizeString(imovel.metragem || '-')} m2</span>
+          <span class="spec">${specLabel}</span>
+          <span class="spec">${metragemLabel}</span>
         </div>
         <div class="imovel-card-footer">
           <span class="imovel-bairro">${sanitizeString(imovel.bairro || '')}</span>
@@ -558,13 +565,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderDiferenciais(document.getElementById('dif-grid'));
     renderHomeAbout(data.about || {});
     initCarouselAutoScroll();
+    
+    // Inicializa animações após o conteúdo dinâmico ser renderizado
+    window.requestAnimationFrame(() => initAnimations());
   } catch (error) {
     console.error('[main] Falha ao carregar dados do Supabase', error);
     const homeGrid = document.getElementById('vitrine-imoveis');
     if (homeGrid) {
       homeGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 48px; color: var(--cinza-texto);">Nao foi possivel carregar os imoveis agora.</div>';
     }
+    // Tenta inicializar mesmo em caso de erro para animar o que estiver estático
+    initAnimations();
   }
-
-  window.setTimeout(initAnimations, 100);
 });

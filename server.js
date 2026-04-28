@@ -1,51 +1,71 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+const DATA_PATH = path.join(__dirname, 'data', 'imoveis.json');
 
-function requiredEnv(name) {
-  return process.env[name] || '';
+// Garantir que a pasta de uploads existe
+const UPLOADS_DIR = path.join(__dirname, 'assets', 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-const SUPABASE_URL = requiredEnv('SUPABASE_URL');
-const SUPABASE_ANON_KEY = requiredEnv('SUPABASE_ANON_KEY');
-const SUPABASE_SERVICE_ROLE_KEY = requiredEnv('SUPABASE_SERVICE_ROLE_KEY');
-const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'uploads';
+// Configuração do Multer para uploads locais
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, UPLOADS_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
+});
 
-function getSupabaseOrigin() {
-  if (!SUPABASE_URL) return null;
+function readData() {
   try {
-    return new URL(SUPABASE_URL).origin;
-  } catch {
-    return null;
+    if (!fs.existsSync(DATA_PATH)) return {};
+    return JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
+  } catch (error) {
+    console.error('Erro ao ler imoveis.json:', error);
+    return {};
   }
 }
 
-function getConnectSrc() {
-  const connectSrc = ["'self'", 'https://formspree.io'];
-  const supabaseOrigin = getSupabaseOrigin();
-  if (supabaseOrigin) {
-    connectSrc.push(supabaseOrigin);
-    connectSrc.push(supabaseOrigin.replace(/^https:/i, 'wss:'));
+function saveData(data) {
+  try {
+    fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar imoveis.json:', error);
+    return false;
   }
-  return connectSrc;
+}
+
+function hashPassword(password, salt) {
+  return crypto.createHash('sha256').update(password + salt).digest('hex');
 }
 
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
-      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
-      scriptSrcElem: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
-      connectSrc: getConnectSrc(),
-      frameSrc: ["'self'", 'https://www.google.com'],
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "blob:", "https:", "https://images.unsplash.com", "https://www.eztec.com.br"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://maps.googleapis.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+      "script-src-attr": ["'unsafe-inline'"],
+      "connect-src": ["'self'", "https://formspree.io"],
+      "frame-src": ["'self'", "https://www.google.com"],
     },
   },
   crossOriginEmbedderPolicy: false,
@@ -58,216 +78,126 @@ app.use(rateLimit({
   legacyHeaders: false,
 }));
 
-app.use(compression({
-  level: 6,
-  threshold: 1024,
-  filter: (req, res) => {
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
-    return compression.filter(req, res);
-  },
-}));
-
-app.use(express.json({ limit: '5mb' }));
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
 
 app.use((req, res, next) => {
   if (req.url.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp)$/i)) {
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-  } else if (req.url.match(/\.html$/i)) {
-    res.setHeader('Cache-Control', 'public, max-age=3600');
   } else if (req.url.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   }
   next();
 });
 
-function hasSupabaseRuntimeConfig() {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
-}
-
-function hasSupabaseAdminConfig() {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_SERVICE_ROLE_KEY);
-}
-
-function supabaseHeaders(token, useServiceRole = false) {
-  const headers = {
-    apikey: useServiceRole ? SUPABASE_SERVICE_ROLE_KEY : SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${useServiceRole ? SUPABASE_SERVICE_ROLE_KEY : token}`,
-    'Content-Type': 'application/json',
-  };
-  return headers;
-}
-
-async function verifySupabaseUser(req) {
-  if (!hasSupabaseRuntimeConfig()) {
-    const error = new Error('Supabase runtime nao configurado no servidor.');
-    error.status = 500;
-    throw error;
-  }
-
-  const authorization = req.headers.authorization || '';
-  const match = authorization.match(/^Bearer\s+(.+)$/i);
-  if (!match) {
-    const error = new Error('Token JWT ausente.');
-    error.status = 401;
-    throw error;
-  }
-
-  const token = match[1];
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: supabaseHeaders(token, false),
-  });
-
-  if (!response.ok) {
-    const payload = await response.text();
-    const error = new Error(payload || 'Sessao invalida.');
-    error.status = response.status || 401;
-    throw error;
-  }
-
-  const user = await response.json();
-  return { token, user };
-}
-
-async function supabaseAdminRequest(method, route, body) {
-  if (!hasSupabaseAdminConfig()) {
-    const error = new Error('SUPABASE_SERVICE_ROLE_KEY nao configurada.');
-    error.status = 500;
-    throw error;
-  }
-
-  const response = await fetch(`${SUPABASE_URL}${route}`, {
-    method,
-    headers: supabaseHeaders('', true),
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  const contentType = response.headers.get('content-type') || '';
-  const payload = contentType.includes('application/json')
-    ? await response.json()
-    : await response.text();
-
-  if (!response.ok) {
-    const message = typeof payload === 'string'
-      ? payload
-      : payload?.msg || payload?.message || payload?.error_description || payload?.error || 'Erro na API do Supabase.';
-    const error = new Error(message);
-    error.status = response.status;
-    throw error;
-  }
-
-  return payload;
-}
-
 function mapAuthUser(user) {
   return {
     id: user.id,
-    email: user.email || '',
-    name: user.user_metadata?.name || '',
-    createdAt: user.created_at || null,
-    lastSignInAt: user.last_sign_in_at || null,
-    emailConfirmedAt: user.email_confirmed_at || null,
+    username: user.username,
+    name: user.name
   };
 }
 
+app.get('/api/site-data', (req, res) => {
+  const data = readData();
+  res.json(data);
+});
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  console.log(`[login] Tentativa para: ${username}`);
+  const data = readData();
+  const user = (data.adminUsers || []).find(u => u.username === username);
+
+  if (user) {
+    const computedHash = hashPassword(password, user.salt);
+    console.log(`[login] User encontrado. Hash esperado: ${user.passwordHash}, Recebido: ${computedHash}`);
+    
+    if (computedHash === user.passwordHash) {
+      return res.json({ ok: true, user: { id: user.id, username: user.username, name: user.name } });
+    }
+  }
+
+  console.log(`[login] Falha na autenticacao para: ${username}`);
+  res.status(401).json({ ok: false, error: 'Credenciais invalidas.' });
+});
+
+app.post('/api/save', (req, res) => {
+  // Nota: Em produção, verificar token/auth aqui
+  if (saveData(req.body)) {
+    res.json({ ok: true });
+  } else {
+    res.status(500).json({ ok: false, error: 'Erro ao salvar arquivo JSON.' });
+  }
+});
+
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ ok: false, error: 'Nenhum arquivo enviado.' });
+  }
+  const relativePath = `assets/uploads/${req.file.filename}`;
+  res.json({ ok: true, url: relativePath });
+});
+
+// User Management API
+app.get('/api/admin/users', (req, res) => {
+    const data = readData();
+    res.json(data.adminUsers || []);
+});
+
+app.post('/api/admin/users', (req, res) => {
+    const { name, username, email, password } = req.body;
+    const data = readData();
+    const salt = crypto.randomBytes(16).toString('hex');
+    const passwordHash = hashPassword(password, salt);
+    
+    const newUser = {
+        id: Date.now(),
+        name,
+        username: username || email,
+        email,
+        passwordHash,
+        salt
+    };
+    
+    data.adminUsers = data.adminUsers || [];
+    data.adminUsers.push(newUser);
+    saveData(data);
+    res.json({ ok: true, user: mapAuthUser(newUser) });
+});
+
+app.patch('/api/admin/users/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, username, email, password } = req.body;
+    const data = readData();
+    const index = data.adminUsers.findIndex(u => String(u.id) === String(id));
+    
+    if (index === -1) return res.status(404).json({ ok: false, error: 'User not found.' });
+    
+    if (name) data.adminUsers[index].name = name;
+    if (username) data.adminUsers[index].username = username;
+    if (email) data.adminUsers[index].email = email;
+    if (password) {
+        const salt = crypto.randomBytes(16).toString('hex');
+        data.adminUsers[index].salt = salt;
+        data.adminUsers[index].passwordHash = hashPassword(password, salt);
+    }
+    
+    saveData(data);
+    res.json({ ok: true });
+});
+
+app.delete('/api/admin/users/:id', (req, res) => {
+    const { id } = req.params;
+    const data = readData();
+    data.adminUsers = (data.adminUsers || []).filter(u => String(u.id) === String(id));
+    saveData(data);
+    res.json({ ok: true });
+});
+
 app.get('/api/runtime-config.js', (req, res) => {
   res.type('application/javascript');
-
-  if (!hasSupabaseRuntimeConfig()) {
-    res.status(500).send(
-      "window.__SUPABASE_CONFIG_ERROR__ = 'SUPABASE_URL e SUPABASE_ANON_KEY precisam estar definidos no servidor.';"
-    );
-    return;
-  }
-
-  res.send(
-    `window.__SUPABASE_CONFIG__ = ${JSON.stringify({
-      url: SUPABASE_URL,
-      anonKey: SUPABASE_ANON_KEY,
-      storageBucket: STORAGE_BUCKET,
-    })};`
-  );
-});
-
-app.get('/api/admin/users', async (req, res) => {
-  try {
-    await verifySupabaseUser(req);
-    const payload = await supabaseAdminRequest('GET', '/auth/v1/admin/users?page=1&per_page=1000');
-    const users = Array.isArray(payload?.users) ? payload.users : [];
-    users.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    res.json({ ok: true, users: users.map(mapAuthUser) });
-  } catch (error) {
-    res.status(error.status || 500).json({ ok: false, error: error.message });
-  }
-});
-
-app.post('/api/admin/users', async (req, res) => {
-  try {
-    await verifySupabaseUser(req);
-
-    const email = String(req.body?.email || '').trim().toLowerCase();
-    const password = String(req.body?.password || '');
-    const name = String(req.body?.name || '').trim();
-
-    if (!email || !password) {
-      return res.status(400).json({ ok: false, error: 'E-mail e senha sao obrigatorios.' });
-    }
-
-    const payload = await supabaseAdminRequest('POST', '/auth/v1/admin/users', {
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        name,
-      },
-    });
-
-    res.status(201).json({ ok: true, user: mapAuthUser(payload.user || payload) });
-  } catch (error) {
-    res.status(error.status || 500).json({ ok: false, error: error.message });
-  }
-});
-
-app.patch('/api/admin/users/:id', async (req, res) => {
-  try {
-    await verifySupabaseUser(req);
-
-    const update = {};
-    const email = String(req.body?.email || '').trim().toLowerCase();
-    const password = String(req.body?.password || '');
-    const name = String(req.body?.name || '').trim();
-
-    if (email) update.email = email;
-    if (password) update.password = password;
-    update.user_metadata = { name };
-
-    const payload = await supabaseAdminRequest('PUT', `/auth/v1/admin/users/${req.params.id}`, update);
-    res.json({ ok: true, user: mapAuthUser(payload.user || payload) });
-  } catch (error) {
-    res.status(error.status || 500).json({ ok: false, error: error.message });
-  }
-});
-
-app.delete('/api/admin/users/:id', async (req, res) => {
-  try {
-    const { user } = await verifySupabaseUser(req);
-    if (user?.id === req.params.id) {
-      return res.status(400).json({ ok: false, error: 'Nao e permitido excluir a propria conta logada.' });
-    }
-
-    await supabaseAdminRequest('DELETE', `/auth/v1/admin/users/${req.params.id}`);
-    res.json({ ok: true });
-  } catch (error) {
-    res.status(error.status || 500).json({ ok: false, error: error.message });
-  }
-});
-
-app.all(['/api/save', '/api/upload'], (req, res) => {
-  res.status(410).json({
-    ok: false,
-    error: 'Os endpoints legados foram desativados. Use Supabase Auth, Database e Storage.',
-  });
+  res.send('window.__USE_JSON_DATA__ = true;');
 });
 
 app.get('/', (req, res) => {
@@ -278,10 +208,9 @@ app.use(express.static(__dirname));
 
 app.listen(PORT, () => {
   console.log('');
-  console.log('Celli Cruz server running');
+  console.log('Celli Cruz server running (JSON Mode)');
   console.log(`Local:  http://localhost:${PORT}`);
   console.log(`Admin:  http://localhost:${PORT}/pages/admin.html`);
-  console.log(`Config: ${hasSupabaseRuntimeConfig() ? 'Supabase runtime OK' : 'Supabase runtime missing'}`);
   console.log('');
 });
 

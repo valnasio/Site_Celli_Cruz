@@ -56,13 +56,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         let matchesMainFilter = true;
 
         if (currentFilter !== 'todos') {
-          if (currentFilter === '2') {
-            matchesMainFilter = Number(imovel.quartos) === 2;
-          } else if (currentFilter === '3') {
-            matchesMainFilter = Number(imovel.quartos) >= 3;
-          } else {
-            matchesMainFilter = normalizeValue(imovel.status) === normalizeValue(currentFilter);
-          }
+          const val = normalizeValue(currentFilter);
+          const imovelStatus = normalizeValue(imovel.status);
+          const imovelTipo = normalizeValue(imovel.tipo);
+          
+          // Verifica se o filtro bate com o status OU com o tipo
+          matchesMainFilter = (imovelStatus === val) || (imovelTipo === val);
         }
 
         const matchesRegion = currentRegion ? imovel.bairro === currentRegion : true;

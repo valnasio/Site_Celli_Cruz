@@ -22,8 +22,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('sidebar-nome').textContent = imovel.nome || '';
     document.getElementById('sidebar-cidade').textContent = imovel.cidade || '';
-    document.getElementById('spec-quartos').textContent = imovel.quartos || '-';
-    document.getElementById('spec-metro').textContent = imovel.metragem || '-';
+    const isTerreno = String(imovel.tipo).toLowerCase() === 'terreno';
+    const specQuartosEl = document.getElementById('spec-quartos');
+    if (specQuartosEl) {
+        if (isTerreno) {
+            // Se for terreno, podemos esconder ou mudar o icone/texto
+            specQuartosEl.parentElement.style.display = 'none'; 
+        } else {
+            specQuartosEl.parentElement.style.display = 'block';
+            specQuartosEl.textContent = imovel.quartos || '-';
+        }
+    }
+    
+    const specMetroEl = document.getElementById('spec-metro');
+    if (specMetroEl) {
+        specMetroEl.textContent = imovel.metragem || '-';
+        const label = specMetroEl.nextElementSibling;
+        if (label) label.textContent = isTerreno ? 'm² total' : 'm² mínimo';
+    }
     document.getElementById('form-imovel-nome').value = imovel.nome || '';
 
     const gallery = (imovel.imagemGaleria && imovel.imagemGaleria.length ? imovel.imagemGaleria : [imovel.imagem]).filter(Boolean);

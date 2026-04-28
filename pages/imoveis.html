@@ -43,9 +43,8 @@
     <button class="filtro-btn active" data-filtro="todos">Todos</button>
     <button class="filtro-btn" data-filtro="Lançamento">Lançamentos</button>
     <button class="filtro-btn" data-filtro="Em Obras">Em Obras</button>
-    <button class="filtro-btn" data-filtro="Pronto para Morar">Prontos p/ Morar</button>
-    <button class="filtro-btn" data-filtro="2">2 Quartos</button>
-    <button class="filtro-btn" data-filtro="3">3+ Quartos</button>
+    <button class="filtro-btn" data-filtro="casa">Casas</button>
+    <button class="filtro-btn" data-filtro="terreno">Terrenos</button>
     
     <div style="margin-left: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
       <label style="font-size: 14px; font-weight: 600; color: var(--azul-escuro);">Região:</label>
@@ -68,7 +67,6 @@
         <label style="font-size: 14px; color: var(--cinza-texto);">Ordenar por:</label>
         <select id="ordenar" style="padding: 8px 12px; border: 1.5px solid var(--cinza-borda); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--texto); background: white; cursor: pointer;">
           <option value="nome">Nome A-Z</option>
-          <option value="quartos">Quartos</option>
           <option value="metragem">Metragem</option>
         </select>
       </div>
@@ -157,8 +155,6 @@
   </a>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/api/runtime-config.js"></script>
 <script src="../js/supabase-client.js"></script>
 <script src="../js/main.js"></script>
 <script src="../js/imoveis-page.js"></script>

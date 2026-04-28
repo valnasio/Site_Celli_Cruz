@@ -39,12 +39,7 @@ function setAppData(nextData) {
   window.appData = appData;
 }
 
-function getClient() {
-  if (!window.supabaseClient) {
-    throw new Error('Supabase client nao inicializado.');
-  }
-  return window.supabaseClient;
-}
+
 
 function resolveAdminMediaPath(src) {
   return typeof window.resolveSupabaseAssetUrl === 'function'
@@ -77,16 +72,24 @@ function showAdminToast(message, type = 'success') {
   window.setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
+async function saveCurrentData() {
+    const response = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appData)
+    });
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || 'Falha ao salvar dados.');
+    return result;
+}
+
 async function loadAdminData() {
-  const [siteSnapshot, usersPayload] = await Promise.all([
-    loadSiteSnapshot(true),
-    window.adminApiRequest('/api/admin/users'),
+  const [siteSnapshot] = await Promise.all([
+    fetchSiteData({ force: true }),
   ]);
 
-  setAppData({
-    ...siteSnapshot,
-    adminUsers: usersPayload.users || [],
-  });
+  setAppData(siteSnapshot);
+  console.log('[admin] appData carregado:', appData);
 
   renderDashboard();
   renderTable(document.getElementById('search-imovel')?.value || '');
@@ -161,6 +164,7 @@ function renderTable(filter = '') {
 function renderCarouselTable() {
   const tbody = document.getElementById('carousel-tbody');
   if (!tbody) return;
+  console.log('[admin] Renderizando carrossel:', appData.carousel);
 
   if (!appData.carousel.length) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum slide encontrado.</td></tr>';
@@ -186,6 +190,7 @@ function renderCarouselTable() {
 function renderAdminUsersTable() {
   const tbody = document.getElementById('admin-users-tbody');
   if (!tbody) return;
+  console.log('[admin] Renderizando usuarios:', appData.adminUsers);
 
   if (!appData.adminUsers.length) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum usuario administrador encontrado.</td></tr>';
@@ -195,7 +200,7 @@ function renderAdminUsersTable() {
   tbody.innerHTML = appData.adminUsers.map((user) => `
     <tr>
       <td>${escapeHtml(user.id)}</td>
-      <td>${escapeHtml(user.email || '')}</td>
+      <td>${escapeHtml(user.username || '')}</td>
       <td>${escapeHtml(user.name || '-')}</td>
       <td>
         <div class="action-btns">
@@ -440,9 +445,10 @@ function openModal(title, imovel) {
 
   [
     ['nome', imovel?.nome],
+    ['tipo', imovel?.tipo || 'casa'],
     ['bairro', imovel?.bairro],
     ['cidade', imovel?.cidade],
-    ['quartos', imovel?.quartos || 2],
+    ['quartos', imovel?.quartos || 0],
     ['metragem', imovel?.metragem],
     ['descricao', imovel?.descricao],
     ['tag', imovel?.tag || 'Lançamento'],
@@ -453,6 +459,14 @@ function openModal(title, imovel) {
     const input = form.querySelector(`[name="${name}"]`);
     if (input) input.value = value || '';
   });
+
+  const tipoSelect = form.querySelector('[name="tipo"]');
+  const updateTipoFields = () => {
+      const isCasa = tipoSelect.value === 'casa';
+      form.querySelectorAll('.field-casa').forEach(el => el.style.display = isCasa ? 'block' : 'none');
+  };
+  tipoSelect.addEventListener('change', updateTipoFields);
+  updateTipoFields();
 
   form.querySelector('[name="imagemUrl"]').value = imageSource === 'url' ? imageValue : '';
   form.querySelector('[name="imagemExisting"]').value = imageValue;
@@ -600,56 +614,7 @@ function removeComodoPhoto(id, photoIndex) {
   renderComodosList();
 }
 
-async function upsertSingletonsFromState(nextConfig, nextAbout) {
-  const client = getClient();
 
-  const { error: configError } = await client.from('site_config').upsert({
-    id: 1,
-    nome_empresa: nextConfig.nomeEmpresa || null,
-    telefone: nextConfig.telefone || null,
-    whatsapp: nextConfig.whatsapp || null,
-    whatsapp_vendas: nextConfig.whatsappVendas || null,
-    whatsapp_atendimento: nextConfig.whatsappAtendimento || null,
-    email: nextConfig.email || null,
-    endereco: nextConfig.endereco || null,
-    hero_chamada: nextConfig.heroChamada || null,
-    hero_subtitulo: nextConfig.heroSubtitulo || null,
-    google_maps_embed: nextConfig.googleMapsEmbed || null,
-  }, { onConflict: 'id' });
-  if (configError) throw configError;
-
-  const { error: aboutError } = await client.from('site_about').upsert({
-    id: 1,
-    about_title: nextAbout.aboutTitle || null,
-    about_subtitle: nextAbout.aboutSubtitle || null,
-    about_description: nextAbout.aboutDescription || null,
-    about_summary: nextAbout.aboutSummary || null,
-    about_mission_title: nextAbout.aboutMissionTitle || null,
-    about_mission_text: nextAbout.aboutMissionText || null,
-    mission_gallery: nextAbout.missionGallery || [],
-  }, { onConflict: 'id' });
-  if (aboutError) throw aboutError;
-}
-
-async function syncSimpleCollection(table, rows) {
-  const client = getClient();
-  const { data: existingRows, error: fetchError } = await client.from(table).select('id');
-  if (fetchError) throw fetchError;
-
-  const existingIds = (existingRows || []).map((item) => item.id);
-  const nextIds = rows.filter((item) => item.id).map((item) => item.id);
-  const idsToDelete = existingIds.filter((id) => !nextIds.includes(id));
-
-  if (idsToDelete.length) {
-    const { error: deleteError } = await client.from(table).delete().in('id', idsToDelete);
-    if (deleteError) throw deleteError;
-  }
-
-  if (rows.length) {
-    const { error: upsertError } = await client.from(table).upsert(rows, { onConflict: 'id' });
-    if (upsertError) throw upsertError;
-  }
-}
 
 async function salvarConfig() {
   const form = document.getElementById('form-config');
@@ -657,7 +622,8 @@ async function salvarConfig() {
 
   const formData = Object.fromEntries(new FormData(form));
   const readField = (name, fallback = '') => Object.prototype.hasOwnProperty.call(formData, name) ? formData[name] : fallback;
-  const nextConfig = {
+  
+  appData.config = {
     nomeEmpresa: readField('nomeEmpresa', appData.config.nomeEmpresa || ''),
     telefone: readField('telefone', appData.config.telefone || ''),
     whatsapp: readField('whatsapp', appData.config.whatsapp || ''),
@@ -670,7 +636,7 @@ async function salvarConfig() {
     googleMapsEmbed: readField('googleMapsEmbed', appData.config.googleMapsEmbed || ''),
   };
 
-  const nextAbout = {
+  appData.about = {
     ...appData.about,
     aboutTitle: readField('aboutTitle', appData.about.aboutTitle || ''),
     aboutSubtitle: readField('aboutSubtitle', appData.about.aboutSubtitle || ''),
@@ -681,7 +647,7 @@ async function salvarConfig() {
   };
 
   try {
-    await upsertSingletonsFromState(nextConfig, nextAbout);
+    await saveCurrentData();
     await loadAdminData();
     showAdminToast('Configuracoes salvas com sucesso.');
   } catch (error) {
@@ -707,12 +673,18 @@ async function salvarWhatsAppOption(event) {
   }
 
   try {
-    const client = getClient();
-    const { error } = await client.from('whatsapp_options').upsert(payload, { onConflict: 'id' });
-    if (error) throw error;
+    if (payload.id) {
+        const index = appData.whatsappOptions.findIndex(o => o.id === payload.id);
+        if (index !== -1) appData.whatsappOptions[index] = payload;
+    } else {
+        payload.id = Date.now();
+        appData.whatsappOptions.push(payload);
+    }
+
+    await saveCurrentData();
     await loadAdminData();
     resetWhatsAppOptionEditor();
-    showAdminToast(whatsappEditingId ? 'Loteamento atualizado.' : 'Loteamento criado.');
+    showAdminToast(whatsappEditingId ? 'WhatsApp atualizado.' : 'WhatsApp criado.');
   } catch (error) {
     showAdminToast(error.message, 'error');
   }
@@ -721,8 +693,8 @@ async function salvarWhatsAppOption(event) {
 async function deleteWhatsAppOption(id) {
   if (!window.confirm('Excluir esta opcao de WhatsApp?')) return;
   try {
-    const { error } = await getClient().from('whatsapp_options').delete().eq('id', Number(id));
-    if (error) throw error;
+    appData.whatsappOptions = appData.whatsappOptions.filter(o => o.id !== Number(id));
+    await saveCurrentData();
     await loadAdminData();
     resetWhatsAppOptionEditor();
     showAdminToast('Opcao removida com sucesso.');
@@ -739,9 +711,9 @@ async function salvarImovel() {
 
   try {
     const imagem = await resolveImageFieldValue(form, 'imagem', 'imoveis/capas');
-    const existing = appData.imoveis.find((item) => item.id === editingImovelId) || {};
     const payload = {
-      id: editingImovelId || undefined,
+      id: editingImovelId || Date.now(),
+      tipo: form.querySelector('[name="tipo"]').value,
       destaque: form.querySelector('[name="destaque"]').checked,
       nome: form.querySelector('[name="nome"]').value.trim(),
       bairro: form.querySelector('[name="bairro"]').value.trim(),
@@ -751,60 +723,29 @@ async function salvarImovel() {
       descricao: form.querySelector('[name="descricao"]').value.trim(),
       tag: form.querySelector('[name="tag"]').value.trim(),
       imagem: imagem.value,
-      imagem_source: imagem.source,
-      imagem_galeria: existing.imagemGaleria?.length ? existing.imagemGaleria : [imagem.value],
+      imagemSource: imagem.source,
+      imagemGaleria: [imagem.value],
       diferenciais: form.querySelector('[name="diferenciais"]').value
         .split(',')
         .map((item) => item.trim())
         .filter(Boolean),
       localizacao: form.querySelector('[name="localizacao"]').value.trim(),
-      maps_link: form.querySelector('[name="mapsLink"]').value.trim(),
+      mapsLink: form.querySelector('[name="mapsLink"]').value.trim(),
       status: form.querySelector('[name="status"]').value.trim(),
+      plantas: plantaDrafts.map(p => ({ nome: p.nome, descricao: p.descricao, unidades: p.unidades })),
+      comodos: comodoDrafts.map(c => ({ id: c.id, nome: c.nome, fotos: c.fotos }))
     };
 
-    if (!payload.nome) {
-      throw new Error('O nome do imovel e obrigatorio.');
+    if (!payload.nome) throw new Error('O nome do imovel e obrigatorio.');
+
+    if (editingImovelId) {
+      const index = appData.imoveis.findIndex(i => i.id === editingImovelId);
+      if (index !== -1) appData.imoveis[index] = payload;
+    } else {
+      appData.imoveis.push(payload);
     }
 
-    const client = getClient();
-    const { data, error } = await client.from('imoveis').upsert(payload, {
-      onConflict: 'id',
-    }).select('id').single();
-    if (error) throw error;
-
-    const imovelId = data.id;
-
-    await client.from('imovel_plantas').delete().eq('imovel_id', imovelId);
-    await client.from('imovel_comodos').delete().eq('imovel_id', imovelId);
-
-    if (plantaDrafts.length) {
-      const { error: plantasError } = await client.from('imovel_plantas').insert(
-        plantaDrafts
-          .filter((item) => item.nome || item.descricao || item.unidades)
-          .map((item, index) => ({
-            imovel_id: imovelId,
-            nome: item.nome || null,
-            descricao: item.descricao || null,
-            unidades: item.unidades || null,
-            sort_order: index,
-          }))
-      );
-      if (plantasError) throw plantasError;
-    }
-
-    if (comodoDrafts.length) {
-      const { error: comodosError } = await client.from('imovel_comodos').insert(
-        comodoDrafts
-          .filter((item) => item.nome || (item.fotos || []).length)
-          .map((item) => ({
-            imovel_id: imovelId,
-            nome: item.nome || null,
-            fotos: item.fotos || [],
-          }))
-      );
-      if (comodosError) throw comodosError;
-    }
-
+    await saveCurrentData();
     await loadAdminData();
     closeModal();
     showAdminToast(editingImovelId ? 'Imovel atualizado.' : 'Imovel criado.');
@@ -816,8 +757,8 @@ async function salvarImovel() {
 async function deleteImovel(id) {
   if (!window.confirm('Excluir este imovel?')) return;
   try {
-    const { error } = await getClient().from('imoveis').delete().eq('id', Number(id));
-    if (error) throw error;
+    appData.imoveis = appData.imoveis.filter(i => i.id !== Number(id));
+    await saveCurrentData();
     await loadAdminData();
     showAdminToast('Imovel removido com sucesso.');
   } catch (error) {
@@ -848,20 +789,26 @@ async function saveCarouselItem() {
       id: editingCarouselId || undefined,
       title: form.querySelector('[name="title"]').value.trim(),
       subtitle: form.querySelector('[name="subtitle"]').value.trim(),
-      image_desktop: desktopImage.value,
+      imageDesktop: desktopImage.value,
       image: desktopImage.value,
-      image_source: desktopImage.source,
-      image_mobile: mobileImage.value || null,
-      image_mobile_source: mobileImage.source || null,
+      imageSource: desktopImage.source,
+      imageMobile: mobileImage.value || null,
+      imageMobileSource: mobileImage.source || null,
       link: form.querySelector('[name="link"]').value.trim() || null,
       sort_order: editingCarouselId || appData.carousel.length + 1,
     };
 
     if (!payload.title) throw new Error('Titulo do slide e obrigatorio.');
 
-    const { error } = await getClient().from('carousel_items').upsert(payload, { onConflict: 'id' });
-    if (error) throw error;
+    if (editingCarouselId) {
+        const index = appData.carousel.findIndex(c => c.id === editingCarouselId);
+        if (index !== -1) appData.carousel[index] = payload;
+    } else {
+        payload.id = Date.now();
+        appData.carousel.push(payload);
+    }
 
+    await saveCurrentData();
     await loadAdminData();
     closeCarouselModal();
     showAdminToast(editingCarouselId ? 'Slide atualizado.' : 'Slide criado.');
@@ -873,8 +820,8 @@ async function saveCarouselItem() {
 async function deleteCarouselItem(id) {
   if (!window.confirm('Excluir este slide?')) return;
   try {
-    const { error } = await getClient().from('carousel_items').delete().eq('id', Number(id));
-    if (error) throw error;
+    appData.carousel = appData.carousel.filter(c => c.id !== Number(id));
+    await saveCurrentData();
     await loadAdminData();
     showAdminToast('Slide removido.');
   } catch (error) {
@@ -942,127 +889,19 @@ async function deleteUser(id) {
 }
 
 async function exportarJSON() {
-  const snapshot = await loadSiteSnapshot(true);
-  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = 'cellicruz-supabase-export.json';
+  anchor.download = 'cellicruz-dados.json';
   anchor.click();
   URL.revokeObjectURL(url);
   showAdminToast('Snapshot exportado com sucesso.');
 }
 
 async function replaceSnapshot(snapshot) {
-  const client = getClient();
-
-  await upsertSingletonsFromState(snapshot.config || {}, {
-    ...appData.about,
-    ...(snapshot.about || {}),
-  });
-
-  await syncSimpleCollection('about_mission_carousel', (snapshot.about?.missionCarousel || []).map((item, index) => ({
-    id: item.id,
-    title: item.title || null,
-    subtitle: item.subtitle || null,
-    image_desktop: item.imageDesktop || item.image || null,
-    image: item.image || item.imageDesktop || null,
-    image_source: item.imageSource || null,
-    image_mobile: item.imageMobile || null,
-    image_mobile_source: item.imageMobileSource || null,
-    sort_order: typeof item.id === 'number' ? item.id : index,
-  })));
-
-  await syncSimpleCollection('carousel_items', (snapshot.carousel || []).map((item, index) => ({
-    id: item.id,
-    title: item.title || null,
-    subtitle: item.subtitle || null,
-    image_desktop: item.imageDesktop || item.image || null,
-    image: item.image || item.imageDesktop || null,
-    image_source: item.imageSource || null,
-    image_mobile: item.imageMobile || null,
-    image_mobile_source: item.imageMobileSource || null,
-    link: item.link || null,
-    sort_order: typeof item.id === 'number' ? item.id : index,
-  })));
-
-  await syncSimpleCollection('whatsapp_options', (snapshot.whatsappOptions || []).map((item) => ({
-    id: item.id,
-    title: item.title || null,
-    description: item.description || null,
-    whatsapp: item.whatsapp || null,
-  })));
-
-  const existingImoveis = await client.from('imoveis').select('id');
-  if (existingImoveis.error) throw existingImoveis.error;
-  const existingIds = (existingImoveis.data || []).map((item) => item.id);
-  const nextIds = (snapshot.imoveis || []).map((item) => item.id).filter(Boolean);
-  const idsToDelete = existingIds.filter((id) => !nextIds.includes(id));
-
-  if (idsToDelete.length) {
-    const { error: deleteImoveisError } = await client.from('imoveis').delete().in('id', idsToDelete);
-    if (deleteImoveisError) throw deleteImoveisError;
-  }
-
-  if (snapshot.imoveis?.length) {
-    const { error: upsertImoveisError } = await client.from('imoveis').upsert(snapshot.imoveis.map((item) => ({
-      id: item.id,
-      destaque: Boolean(item.destaque),
-      nome: item.nome,
-      bairro: item.bairro || null,
-      cidade: item.cidade || null,
-      quartos: item.quartos || null,
-      metragem: item.metragem || null,
-      descricao: item.descricao || null,
-      tag: item.tag || null,
-      imagem: item.imagem || null,
-      imagem_source: item.imagemSource || null,
-      imagem_galeria: item.imagemGaleria || [],
-      diferenciais: item.diferenciais || [],
-      localizacao: item.localizacao || null,
-      maps_link: item.mapsLink || null,
-      status: item.status || null,
-    })), { onConflict: 'id' });
-    if (upsertImoveisError) throw upsertImoveisError;
-  }
-
-  const { error: deletePlantasError } = await client.from('imovel_plantas').delete().gt('id', 0);
-  if (deletePlantasError) throw deletePlantasError;
-  const { error: deleteComodosError } = await client.from('imovel_comodos').delete().gt('id', 0);
-  if (deleteComodosError) throw deleteComodosError;
-
-  const plantas = [];
-  const comodos = [];
-
-  (snapshot.imoveis || []).forEach((imovel) => {
-    (imovel.plantas || []).forEach((planta, index) => {
-      plantas.push({
-        imovel_id: imovel.id,
-        nome: planta.nome || null,
-        descricao: planta.descricao || null,
-        unidades: planta.unidades || null,
-        sort_order: index,
-      });
-    });
-
-    (imovel.comodos || []).forEach((comodo) => {
-      comodos.push({
-        imovel_id: imovel.id,
-        nome: comodo.nome || null,
-        fotos: comodo.fotos || [],
-      });
-    });
-  });
-
-  if (plantas.length) {
-    const { error: plantasError } = await client.from('imovel_plantas').insert(plantas);
-    if (plantasError) throw plantasError;
-  }
-
-  if (comodos.length) {
-    const { error: comodosError } = await client.from('imovel_comodos').insert(comodos);
-    if (comodosError) throw comodosError;
-  }
+  appData = snapshot;
+  await saveCurrentData();
 }
 
 function importarJSON() {
@@ -1078,7 +917,7 @@ function importarJSON() {
       const snapshot = JSON.parse(text);
       await replaceSnapshot(snapshot);
       await loadAdminData();
-      showAdminToast('Snapshot importado para o Supabase.');
+      showAdminToast('Snapshot importado e salvo no servidor.');
     } catch (error) {
       showAdminToast(error.message || 'Arquivo invalido.', 'error');
     }
@@ -1176,7 +1015,7 @@ function setupEventListeners() {
   document.getElementById('btn-save-server')?.addEventListener('click', async () => {
     try {
       await loadAdminData();
-      showAdminToast('Painel recarregado a partir do Supabase.');
+      showAdminToast('Painel recarregado do arquivo local.');
     } catch (error) {
       showAdminToast(error.message, 'error');
     }

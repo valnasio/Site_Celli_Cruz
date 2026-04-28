@@ -5,54 +5,36 @@
     return window.location.pathname.includes('/pages/') ? page : `pages/${page}`;
   }
 
-  function getClient() {
-    if (!window.supabaseClient) {
-      throw new Error('Supabase client nao inicializado.');
-    }
-    return window.supabaseClient;
-  }
-
   function getUserLabel(user) {
-    return user?.user_metadata?.name || user?.email || 'Administrador';
+    return user?.name || user?.username || 'Administrador';
   }
 
-  async function loginAdmin(email, password) {
-    const client = getClient();
-    const credentials = {
-      email: String(email || '').trim().toLowerCase(),
-      password: String(password || ''),
-    };
+  async function loginAdmin(username, password) {
+    const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
 
-    if (!credentials.email || !credentials.password) {
-      throw new Error('Informe e-mail e senha.');
-    }
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || 'Falha ao autenticar.');
 
-    const { data, error } = await client.auth.signInWithPassword(credentials);
-    if (error) throw error;
-    return data;
-  }
-
-  async function getAdminSession() {
-    const client = getClient();
-    const { data, error } = await client.auth.getSession();
-    if (error) throw error;
-    return data?.session || null;
+    localStorage.setItem('admin_session', JSON.stringify({ user: result.user }));
+    return result;
   }
 
   async function isAdminAuthenticated() {
-    return Boolean(await getAdminSession());
+    return Boolean(localStorage.getItem('admin_session'));
   }
 
   async function getAuthenticatedAdminUser() {
-    const client = getClient();
-    const { data, error } = await client.auth.getUser();
-    if (error) throw error;
-    return data?.user || null;
+    const session = localStorage.getItem('admin_session');
+    if (!session) return null;
+    return JSON.parse(session).user;
   }
 
   async function logoutAdmin() {
-    const client = getClient();
-    await client.auth.signOut();
+    localStorage.removeItem('admin_session');
     window.location.href = getAdminPath('login.html');
   }
 
@@ -84,9 +66,13 @@
 
       try {
         const formData = new FormData(form);
-        const email = String(formData.get('email') || '');
+        const username = String(formData.get('username') || '');
         const password = String(formData.get('password') || '');
-        await loginAdmin(email, password);
+        
+        console.log('Tentando login com:', username);
+        const result = await loginAdmin(username, password);
+        console.log('Login bem-sucedido:', result);
+        
         window.location.href = 'admin.html';
       } catch (error) {
         errorEl.textContent = error.message || 'Falha ao autenticar.';
@@ -102,18 +88,6 @@
   document.addEventListener('DOMContentLoaded', async () => {
     const isLoginPage = window.location.pathname.endsWith('/login.html');
     const isAdminPage = window.location.pathname.endsWith('/admin.html');
-    const client = window.supabaseClient;
-
-    if (!client) {
-      console.error('Supabase client indisponivel nas paginas administrativas.');
-      return;
-    }
-
-    client.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT' && isAdminPage) {
-        window.location.href = 'login.html';
-      }
-    });
 
     if (isLoginPage) {
       if (await isAdminAuthenticated()) {
@@ -134,8 +108,20 @@
 
   window.loginAdmin = loginAdmin;
   window.isAdminAuthenticated = isAdminAuthenticated;
-  window.getAdminSession = getAdminSession;
   window.getAuthenticatedAdminUser = getAuthenticatedAdminUser;
   window.requireAdminLogin = requireAdminLogin;
   window.logoutAdmin = logoutAdmin;
+  
+  // Mock para compatibilidade
+  window.adminApiRequest = async (url, options = {}) => {
+    const fetchOptions = { ...options };
+    if (fetchOptions.body && typeof fetchOptions.body === 'object') {
+      fetchOptions.headers = { ...fetchOptions.headers, 'Content-Type': 'application/json' };
+      fetchOptions.body = JSON.stringify(fetchOptions.body);
+    }
+    const response = await fetch(url, fetchOptions);
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erro na requisição.');
+    return result;
+  };
 })();

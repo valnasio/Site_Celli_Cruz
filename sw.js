@@ -1,5 +1,5 @@
 // Service Worker para cache offline e performance
-const CACHE_NAME = 'cellicruz-v1.0.0';
+const CACHE_NAME = 'cellicruz-v1.1.0';
 const STATIC_CACHE_URLS = [
   '/',
   '/css/styles.css',

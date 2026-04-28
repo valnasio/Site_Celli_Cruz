@@ -3,235 +3,252 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Admin | Celli Cruz</title>
+  <title>Admin - Celli Cruz Assessoria Imobiliária</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="../css/styles.css">
-  <link rel="icon" href="../assets/logo.png" type="image/png">
+  <link rel="stylesheet" href="../css/admin.css">
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <style>
-    /* Estilos exclusivos do admin não cobertos por styles.css */
-    html, body { overflow-x: hidden; width: 100%; margin: 0; padding: 0; }
-    body { background: #f0f2f5; }
-    
-    .admin-section { display: none; }
-    
-    .icon-blue { background: #dbeafe; }
-    .icon-green { background: #d1fae5; }
-    .icon-yellow { background: #fef3cd; }
-    .icon-red { background: #fde8e8; }
+    /* Estilos específicos para o layout admin que não estão no admin.css */
+    :root {
+      --azul-escuro: #0f172a;
+      --azul: #2563eb;
+      --cinza-bg: #f8fafc;
+      --cinza-borda: #e2e8f0;
+      --cinza-texto: #64748b;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
 
-    .config-form-grid {
+    body {
+      background: var(--cinza-bg);
+      font-family: 'DM Sans', sans-serif;
+      margin: 0;
+      color: var(--azul-escuro);
+    }
+
+    .admin-layout {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
     }
 
-    .full-width { grid-column: 1 / -1; }
+    .admin-sidebar {
+      background: var(--azul-escuro);
+      color: white;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
 
-    /* Info box */
-    .info-box {
-      background: #dbeafe;
-      border-left: 4px solid #3b82f6;
+    .sidebar-logo {
+      width: 140px;
+      margin-bottom: 32px;
+      filter: brightness(0) invert(1);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
       border-radius: var(--radius-sm);
-      padding: 14px 18px;
-      font-size: 14px;
-      color: #1e3a5f;
-      margin-bottom: 24px;
+      margin-bottom: 4px;
+      transition: 0.2s;
+      cursor: pointer;
     }
-    .info-box strong { display: block; margin-bottom: 4px; }
 
-    /* Logs */
-    .log-area {
-      background: #0d1117;
-      color: #58a6ff;
-      font-family: 'Courier New', monospace;
+    .sidebar-link:hover, .sidebar-link.active {
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+
+    .sidebar-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.3);
+      margin: 24px 0 12px 16px;
+    }
+
+    .admin-main {
+      padding: 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .admin-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .admin-topbar h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .admin-panel {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+      border: 1px solid var(--cinza-borda);
+      margin-bottom: 32px;
+    }
+
+    .panel-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--cinza-borda);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel-header h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    /* Stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: var(--radius);
+      border: 1px solid var(--cinza-borda);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .icon-blue { background: #eff6ff; color: #2563eb; }
+    .icon-yellow { background: #fffbeb; color: #d97706; }
+    .icon-green { background: #f0fdf4; color: #16a34a; }
+    .icon-red { background: #fef2f2; color: #dc2626; }
+
+    .stat-info p {
+      margin: 0;
       font-size: 13px;
-      padding: 20px;
-      border-radius: var(--radius-sm);
-      min-height: 200px;
-      max-height: 400px;
-      overflow-y: auto;
-      line-height: 1.8;
+      color: var(--cinza-texto);
     }
 
+    .stat-info span {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    /* Responsividade */
     @media (max-width: 900px) {
-      .config-form-grid { grid-template-columns: 1fr; }
-      .stats-row { grid-template-columns: 1fr 1fr; }
-      .full-width { grid-column: 1; }
-
-      /* Contenção — impede elementos de texto/painel de vazar */
-      .admin-panel,
-      .info-box,
-      .log-area,
-      .admin-dados-grid { max-width: 100%; box-sizing: border-box; }
-      .info-box code { word-break: break-all; }
-
-      /* Tabela: permite scroll horizontal para ver botões de ação */
-      .admin-table { min-width: 600px; }
-    }
-
-    /* ===== RESPONSIVIDADE MOBILE ADMIN ===== */
-    @media (max-width: 640px) {
-      /* Padding interno dos painéis */
-      .admin-panel-body { padding: 16px !important; }
-
-      /* Busca e botões no header dos painéis */
-      .panel-header-actions { width: 100%; }
-      .panel-header-actions input[type="text"] { width: 100% !important; }
-      .panel-header-actions .btn { width: 100%; justify-content: center; }
-
-      /* Info box */
-      .info-box { font-size: 13px; padding: 12px 14px; overflow-wrap: break-word; }
-      .info-box p { font-size: 13px; }
-
-      /* Cards de dados (Salvar/Exportar/Importar) */
-      .admin-dados-card { padding: 16px !important; }
-      .admin-dados-card h4 { font-size: 14px; }
-      .admin-dados-card p { font-size: 13px !important; }
-      .admin-dados-card .btn { width: 100%; justify-content: center; font-size: 13px; padding: 10px 14px; }
-
-      /* Log area */
-      .log-area { padding: 14px; font-size: 11px; min-height: 150px; word-break: break-all; overflow-x: auto; max-width: 100%; }
-
-      /* Seção Ajuda */
-      .admin-ajuda-body { padding: 16px !important; max-width: 100% !important; }
-      .admin-ajuda-body h4 { font-size: 15px !important; }
-      .admin-ajuda-body p { font-size: 13px !important; }
-      .admin-ajuda-block { padding: 14px !important; max-width: 100%; overflow-wrap: break-word; }
-      .admin-ajuda-block code { font-size: 11px; word-break: break-all; display: inline-block; max-width: 100%; overflow-x: auto; }
-
-      /* Formulário WhatsApp */
-      .admin-form-body { padding: 16px !important; }
-
-      /* Botões de ação nas tabelas */
-      .action-btns { gap: 6px; }
-      .btn-icon { width: 32px; height: 32px; font-size: 13px; }
-
-      /* Topbar botão Sair */
-      #btn-logout span { display: none; }
+      .admin-layout { grid-template-columns: 1fr; }
+      .admin-sidebar { display: none; }
+      .admin-main { padding: 16px; }
+      .admin-topbar { flex-direction: column; align-items: flex-start; gap: 16px; }
     }
   </style>
 </head>
 <body>
 
 <div class="admin-layout">
-  <!-- ============================================================
-       SIDEBAR
-       ============================================================ -->
-  <div class="admin-sidebar-overlay" id="admin-sidebar-overlay"></div>
   <aside class="admin-sidebar" id="admin-sidebar">
     <div class="sidebar-header">
       <img src="../assets/logo.png" alt="Celli Cruz" class="sidebar-logo">
-      <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 8px;">Painel Administrativo</p>
     </div>
     <nav class="sidebar-nav">
       <p class="sidebar-label">Principal</p>
-      <a href="#" class="sidebar-link active" data-section="imoveis">
+      <a class="sidebar-link active" data-section="imoveis">
         <i class="fas fa-home"></i> <span>Imóveis</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="config">
-        <i class="fas fa-cog"></i> <span>Configurações</span>
-      </a>
-      <a href="#" class="sidebar-link" data-section="whatsapp">
-        <i class="fas fa-comments"></i> <span>WhatsApp</span>
-      </a>
-      <a href="#" class="sidebar-link" data-section="usuarios">
-        <i class="fas fa-users"></i> <span>Usuários</span>
-      </a>
-      <a href="#" class="sidebar-link" data-section="carousel">
+      <a class="sidebar-link" data-section="carousel">
         <i class="fas fa-image"></i> <span>Carrossel</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="dados">
-        <i class="fas fa-database"></i> <span>Importar / Exportar</span>
+      <a class="sidebar-link" data-section="whatsapp">
+        <i class="fas fa-comments"></i> <span>WhatsApp</span>
       </a>
-      <a href="#" class="sidebar-link" data-section="ajuda">
-        <i class="fas fa-question-circle"></i> <span>Ajuda & Documentação</span>
+      <a class="sidebar-link" data-section="database">
+        <i class="fas fa-database"></i> <span>Banco de Dados</span>
       </a>
-
-      <p class="sidebar-label" style="margin-top: 32px;">Site</p>
-      <a href="../index.html" class="sidebar-link" target="_blank">
-        <i class="fas fa-globe"></i> <span>Ver Site</span>
+      <a class="sidebar-link" data-section="config">
+        <i class="fas fa-cog"></i> <span>Configurações</span>
       </a>
-      <a href="imoveis.html" class="sidebar-link" target="_blank">
-        <i class="fas fa-list"></i> <span>Página de Imóveis</span>
+      <a class="sidebar-link" data-section="users">
+        <i class="fas fa-users"></i> <span>Usuários</span>
       </a>
     </nav>
     <div style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: rgba(255,255,255,0.3);">
-      Celli Cruz Admin v1.0
+      Celli Cruz Admin v1.0 (JSON Mode)
     </div>
   </aside>
 
-  <!-- ============================================================
-       CONTEÚDO PRINCIPAL
-       ============================================================ -->
   <main class="admin-main">
-    <!-- TOP BAR -->
     <div class="admin-topbar">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <button id="admin-menu-toggle" class="admin-topbar-menu-btn" style="display: none; background: none; border: none; cursor: pointer; padding: 8px; color: var(--azul-escuro); font-size: 22px;">
-          <i class="fas fa-bars"></i>
-        </button>
-        <div>
-          <h2 id="topbar-titulo">Gerenciar Imóveis</h2>
-          <p style="margin: 4px 0 0; font-size: 13px; color: var(--cinza-texto);">Logado como <strong id="admin-user-name">—</strong></p>
-        </div>
+      <div>
+        <h2 id="topbar-titulo">Gerenciar Imóveis</h2>
+        <p style="margin: 4px 0 0; font-size: 13px; color: var(--cinza-texto);">Logado como <strong id="admin-user-name">—</strong></p>
       </div>
       <div style="display: flex; gap: 12px; align-items: center;">
-        <a href="../index.html" target="_blank" class="btn btn-outline topbar-ver-site" style="padding: 8px 16px; font-size: 13px;">
-          <i class="fas fa-globe"></i> Ver Site
-        </a>
-        <button id="btn-logout" class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;">
-          <i class="fas fa-sign-out-alt"></i> Sair
-        </button>
+        <button id="btn-export-json" class="btn btn-outline" title="Exportar dados para JSON"><i class="fas fa-download"></i> JSON</button>
+        <a href="../index.html" target="_blank" class="btn btn-outline">Ver Site</a>
+        <button id="btn-logout" class="btn btn-outline">Sair</button>
       </div>
     </div>
 
     <div class="admin-content">
-      <!-- ============================================================
-           SEÇÃO: IMÓVEIS
-           ============================================================ -->
+      <!-- Seção Imóveis -->
       <div id="section-imoveis" class="admin-section">
-        <!-- STATS -->
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-icon icon-blue"><i class="fas fa-home"></i></div>
-            <div class="stat-info">
-              <p>Total de Imóveis</p>
-              <span id="stat-total">—</span>
-            </div>
+            <div class="stat-info"><p>Total</p><span id="stat-total">—</span></div>
           </div>
           <div class="stat-card">
             <div class="stat-icon icon-yellow"><i class="fas fa-star"></i></div>
-            <div class="stat-info">
-              <p>Em Destaque</p>
-              <span id="stat-destaques">—</span>
-            </div>
+            <div class="stat-info"><p>Destaques</p><span id="stat-destaques">—</span></div>
           </div>
           <div class="stat-card">
             <div class="stat-icon icon-green"><i class="fas fa-rocket"></i></div>
-            <div class="stat-info">
-              <p>Lançamentos</p>
-              <span id="stat-lancamentos">—</span>
-            </div>
+            <div class="stat-info"><p>Lançamentos</p><span id="stat-lancamentos">—</span></div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon icon-red"><i class="fas fa-check"></i></div>
-            <div class="stat-info">
-              <p>Prontos p/ Morar</p>
-              <span id="stat-prontos">—</span>
-            </div>
+            <div class="stat-icon icon-blue"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-info"><p>Prontos</p><span id="stat-prontos">—</span></div>
           </div>
         </div>
 
-        <!-- TABELA -->
         <div class="admin-panel">
           <div class="panel-header">
             <h3>Lista de Imóveis</h3>
-            <div class="panel-header-actions" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-              <input type="text" id="search-imovel" placeholder="Buscar imóvel..." 
-                style="padding: 8px 14px; border: 1.5px solid var(--cinza-borda); border-radius: var(--radius-sm); font-size: 14px; font-family: 'DM Sans', sans-serif; width: 200px;">
-              <button id="btn-new-imovel" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
-                + Novo Imóvel
-              </button>
+            <div style="display: flex; gap: 12px;">
+              <input type="text" id="search-imovel" placeholder="Buscar..." style="padding: 8px 12px; border: 1px solid var(--cinza-borda); border-radius: var(--radius-sm); outline: none;">
+              <button id="btn-new-imovel" class="btn btn-primary">+ Novo Imóvel</button>
             </div>
           </div>
           <div style="overflow-x: auto;">
@@ -248,651 +265,288 @@
                 </tr>
               </thead>
               <tbody id="imoveis-tbody">
-                <tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Carregando...</td></tr>
+                <tr><td colspan="7" style="text-align:center; padding: 40px;">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ============================================================
-           SEÇÃO: CONFIGURAÇÕES
-           ============================================================ -->
-      <div id="section-config" class="admin-section">
+      <!-- Seção Carrossel -->
+      <div id="section-carousel" class="admin-section" style="display:none;">
         <div class="admin-panel">
           <div class="panel-header">
-            <h3>Configurações do Site</h3>
-            <div class="panel-header-actions" style="display: flex; gap: 10px;">
-              <button id="btn-save-config" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
-                <i class="fas fa-save"></i> Salvar Configurações
-              </button>
-            </div>
-          </div>
-          <div class="admin-panel-body" style="padding: 28px;">
-            <div class="info-box">
-              <strong><i class="fas fa-circle-info"></i> Como usar</strong>
-              As alteracoes desta secao sao salvas diretamente no Supabase. O export abaixo agora gera apenas um snapshot de backup, sem fallback local.
-            </div>
-            <form id="form-config">
-              <div class="config-form-grid">
-                <div class="form-group">
-                  <label>Nome da Empresa</label>
-                  <input type="text" name="nomeEmpresa" placeholder="Celli Cruz Assessoria Imobiliária">
-                </div>
-                <div class="form-group">
-                  <label>Telefone</label>
-                  <input type="text" name="telefone" placeholder="(75) 99937-1939">
-                </div>
-                <div class="form-group">
-                  <label>WhatsApp (somente números)</label>
-                  <input type="text" name="whatsapp" placeholder="5575999371939">
-                </div>
-                <div class="form-group">
-                  <label>WhatsApp Vendas</label>
-                  <input type="text" name="whatsappVendas" placeholder="5575999371939">
-                </div>
-                <div class="form-group">
-                  <label>WhatsApp Atendimento</label>
-                  <input type="text" name="whatsappAtendimento" placeholder="5575999371939">
-                </div>
-                <div class="form-group">
-                  <label>E-mail</label>
-                  <input type="email" name="email" placeholder="contato@cellicruz.com.br">
-                </div>
-                <div class="form-group full-width">
-                  <label>Endereço completo</label>
-                  <input type="text" name="endereco" placeholder="Rua Newton Vieira Rique, 18, São João...">
-                </div>
-                <div class="form-group">
-                  <label>Chamada principal (Hero)</label>
-                  <input type="text" name="heroChamada" placeholder="O lar que acompanha o seu ritmo.">
-                </div>
-                <div class="form-group">
-                  <label>Subtítulo do Hero</label>
-                  <input type="text" name="heroSubtitulo" placeholder="Encontre os melhores imóveis...">
-                </div>
-                <div class="form-group full-width">
-                  <label>Google Maps Embed</label>
-                  <input type="text" name="googleMapsEmbed" placeholder="https://www.google.com/maps/embed?...">
-                </div>
-                <div class="form-group full-width">
-                  <label>Título da página Sobre</label>
-                  <input type="text" name="aboutTitle" placeholder="Quem somos">
-                </div>
-                <div class="form-group full-width">
-                  <label>Subtítulo da página Sobre</label>
-                  <input type="text" name="aboutSubtitle" placeholder="A Celli Cruz conecta sua família ao melhor imóvel.">
-                </div>
-                <div class="form-group full-width">
-                  <label>Descrição da página Sobre</label>
-                  <textarea name="aboutDescription" rows="4" placeholder="Adicione o texto de apresentação da empresa. Esta descrição aparece na página Sobre."></textarea>
-                </div>
-                <div class="form-group full-width">
-                  <label>Resumo do Sobre</label>
-                  <textarea name="aboutSummary" rows="3" placeholder="Texto resumido usado na home e no snapshot exportado."></textarea>
-                </div>
-                <div class="form-group full-width">
-                  <label>Título da seção Missão</label>
-                  <input type="text" name="aboutMissionTitle" placeholder="Nossa missão">
-                </div>
-                <div class="form-group full-width">
-                  <label>Texto da seção Missão</label>
-                  <textarea name="aboutMissionText" rows="4" placeholder="Explique a missão da empresa e destaque os valores."></textarea>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           SEÇÃO: WHATSAPP
-           ============================================================ -->
-      <div id="section-whatsapp" class="admin-section">
-        <div class="admin-panel">
-          <div class="panel-header">
-            <h3>WhatsApp / Loteamentos</h3>
-            <button id="btn-new-whatsapp-option" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
-              + Novo Loteamento
-            </button>
-          </div>
-          <div class="info-box">
-            Gerencie os loteamentos e seus números de WhatsApp. Essas opções aparecem quando o visitante clica em WhatsApp no site.
+            <h3>Slides do Carrossel</h3>
+            <button id="btn-new-carousel" class="btn btn-primary">+ Novo Slide</button>
           </div>
           <div style="overflow-x: auto;">
             <table class="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Loteamento</th>
-                  <th>Número WhatsApp</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="whatsapp-options-tbody">
-                <tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Carregando...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div class="admin-panel" style="margin-top: 24px;">
-          <div class="panel-header">
-            <h3 id="whatsapp-editor-title">Novo loteamento</h3>
-          </div>
-          <div class="admin-form-body" style="padding: 28px;">
-            <form id="form-whatsapp-option">
-              <input type="hidden" name="id" id="whatsapp-option-id">
-              <div class="form-group">
-                <label>Nome do loteamento</label>
-                <input type="text" name="title" placeholder="Ex: Loteamento Jardim das Acácias">
-              </div>
-              <div class="form-group">
-                <label>Descrição</label>
-                <input type="text" name="description" placeholder="Ex: Atendimento para lançamentos e reservas">
-              </div>
-              <div class="form-group full-width">
-                <label>WhatsApp (somente números)</label>
-                <input type="text" name="whatsapp" placeholder="55759991234567">
-              </div>
-              <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px;">
-                <button type="submit" class="btn btn-primary">Salvar loteamento</button>
-                <button type="button" class="btn btn-outline" id="btn-cancel-whatsapp-option">Cancelar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           SEÇÃO: CARROSSEL
-           ============================================================ -->
-      <div id="section-carousel" class="admin-section">
-        <div class="admin-panel">
-          <div class="panel-header">
-            <h3>Carrossel de Publicidade</h3>
-            <button id="btn-new-carousel" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
-              + Novo Slide
-            </button>
-          </div>
-          <div class="info-box">
-            <strong>📸 Especificações das Imagens do Carrossel</strong>
-            <p>Resolução validada: <strong>1776x592 pixels</strong> (proporção 1776:592 ≈ 3:1). Formatos aceitos: PNG, JPG, JPEG, GIF, WebP. Tamanho máximo: 5MB. As imagens são exibidas com <code>object-fit: contain</code> para manter a proporção completa sem cortes.</p>
-          </div>
-          <div style="overflow-x: auto;">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Imagem</th>
+                  <th>Miniatura</th>
                   <th>Título</th>
-                  <th>Texto</th>
+                  <th>Subtítulo</th>
                   <th>Ações</th>
                 </tr>
               </thead>
-              <tbody id="carousel-tbody">
-                <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Carregando...</td></tr>
-              </tbody>
+              <tbody id="carousel-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ============================================================
-           SEÇÃO: USUÁRIOS ADMIN
-           ============================================================ -->
-      <div id="section-usuarios" class="admin-section">
+      <!-- Seção Loteamentos (WhatsApp Options) -->
+      <div id="section-whatsapp" class="admin-section" style="display:none;">
         <div class="admin-panel">
           <div class="panel-header">
-            <h3>Usuários Admin</h3>
-            <button id="btn-new-user" class="btn btn-primary" style="padding: 9px 18px; font-size: 14px;">
-              + Novo Usuário
-            </button>
+            <h3>Gerenciar Números de WhatsApp</h3>
+            <button id="btn-new-whatsapp" class="btn btn-primary">+ Novo Número</button>
+          </div>
+          <div style="padding: 24px;">
+            <div id="whatsapp-options-list">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>WhatsApp</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="whatsapp-options-tbody"></tbody>
+                </table>
+            </div>
+          </div>
+        </div>
+        
+        <div class="admin-panel" id="whatsapp-editor" style="margin-top: 32px;">
+            <div class="panel-header"><h3 id="whatsapp-editor-title">Novo Número</h3></div>
+            <div style="padding: 24px;">
+                <form id="form-whatsapp-option">
+                    <input type="hidden" name="id">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group"><label>Título (Ex: Vendas)</label><input type="text" name="title" required></div>
+                        <div class="form-group"><label>WhatsApp (Número com DDD)</label><input type="text" name="whatsapp" required></div>
+                        <div class="form-group" style="grid-column: 1/-1;"><label>Descrição (opcional)</label><textarea name="description" rows="2"></textarea></div>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; gap: 12px;">
+                        <button type="submit" class="btn btn-primary">Salvar Número</button>
+                        <button type="button" class="btn btn-outline" onclick="resetWhatsAppOptionEditor()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      </div>
+
+      <!-- Seção Usuários -->
+      <div id="section-users" class="admin-section" style="display:none;">
+        <div class="admin-panel">
+          <div class="panel-header">
+            <h3>Usuários Administradores</h3>
+            <button id="btn-new-user" class="btn btn-primary">+ Novo Usuário</button>
           </div>
           <div style="overflow-x: auto;">
             <table class="admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>E-mail</th>
+                  <th>E-mail / Usuário</th>
                   <th>Nome</th>
                   <th>Ações</th>
                 </tr>
               </thead>
-              <tbody id="admin-users-tbody">
-                <tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Carregando...</td></tr>
-              </tbody>
+              <tbody id="admin-users-tbody"></tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- ============================================================
-           SEÇÃO: DADOS
-           ============================================================ -->
-      <div id="section-dados" class="admin-section">
-        <div class="admin-panel" style="margin-bottom: 24px;">
-          <div class="panel-header">
-            <h3><i class="fas fa-download"></i> Importar / Exportar Dados</h3>
-          </div>
-          <div class="admin-panel-body" style="padding: 28px;">
-            <div class="info-box">
-              <strong><i class="fas fa-lightbulb"></i> Como funciona a persistência</strong>
-              O painel salva os dados diretamente no Supabase Database e no Supabase Storage. O export gera um snapshot JSON para auditoria, backup e importacao completa se necessario.
-            </div>
-
-<<<<<<< HEAD
-            <div class="admin-dados-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
-              <div class="admin-dados-card" style="background: #d1fae5; border-radius: var(--radius); padding: 24px;">
-                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-save"></i> Salvar no Servidor</h4>
-                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Exporta e salva automaticamente no arquivo <code>data/imoveis.json</code>.</p>
-                <button id="btn-save-server" class="btn btn-primary" style="background: #10b981; border-color: #10b981;"><i class="fas fa-save"></i> Salvar Alterações</button>
-=======
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
-              <div style="background: #d1fae5; border-radius: var(--radius); padding: 24px;">
-                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-database"></i> Snapshot Atual</h4>
-                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Recarrega do Supabase e confirma o estado persistido no banco.</p>
-                <button id="btn-save-server" class="btn btn-primary" style="background: #10b981; border-color: #10b981;"><i class="fas fa-rotate"></i> Atualizar do Supabase</button>
->>>>>>> ad69dbf053c4195978c75eb997bdae5b00477044
-              </div>
-              <div class="admin-dados-card" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
-                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-upload"></i> Exportar</h4>
-                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Baixa um snapshot JSON do estado atual do Supabase.</p>
-                <button id="btn-export-json" class="btn btn-primary"><i class="fas fa-download"></i> Baixar snapshot</button>
-              </div>
-              <div class="admin-dados-card" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
-                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-folder-open"></i> Importar</h4>
-                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Substitui o estado atual do Supabase por um snapshot JSON compatível.</p>
-                <button id="btn-import-json" class="btn btn-outline"><i class="fas fa-file-import"></i> Selecionar arquivo JSON</button>
-              </div>
-            </div>
-
-            <div style="margin-top: 24px;">
-              <h4 style="color: var(--azul-escuro); margin-bottom: 12px;"><i class="fas fa-file-code"></i> Snapshot Atual (para copiar)</h4>
-              <div class="log-area" id="json-preview">Clique em "Ver snapshot atual" para visualizar.</div>
-              <br>
-              <button id="btn-show-json" class="btn btn-outline"><i class="fas fa-eye"></i> Ver snapshot atual</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============================================================
-           SEÇÃO: AJUDA
-           ============================================================ -->
-      <div id="section-ajuda" class="admin-section">
+      <!-- Seção Configurações -->
+      <div id="section-config" class="admin-section" style="display:none;">
         <div class="admin-panel">
-          <div class="panel-header"><h3><i class="fas fa-question-circle"></i> Documentação & Ajuda</h3></div>
-<<<<<<< HEAD
-          <div class="admin-ajuda-body" style="padding: 28px; max-width: 800px;">
-            
-            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-folder"></i> Estrutura de Arquivos</h4>
-=======
-          <div style="padding: 28px; max-width: 800px;">
-            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-database"></i> Arquitetura atual</h4>
->>>>>>> ad69dbf053c4195978c75eb997bdae5b00477044
-            <div class="log-area" style="color: #79c0ff; margin-bottom: 24px;">
-Frontend publico <i class="fas fa-arrow-right"></i> supabase-js no navegador<br>
-Painel admin <i class="fas fa-arrow-right"></i> Supabase Auth + JWT<br>
-Conteudo <i class="fas fa-arrow-right"></i> Supabase Database (Postgres)<br>
-Imagens <i class="fas fa-arrow-right"></i> Supabase Storage<br>
-Usuarios admin <i class="fas fa-arrow-right"></i> Auth Admin API via server.js
-            </div>
+          <div class="panel-header">
+            <h3>Configurações Gerais do Site</h3>
+            <button id="btn-save-config" class="btn btn-primary">Salvar Tudo</button>
+          </div>
+          <div style="padding: 24px;">
+            <form id="form-config">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group"><label>Nome Empresa</label><input type="text" name="nomeEmpresa"></div>
+                    <div class="form-group"><label>Telefone Exibição</label><input type="text" name="telefone"></div>
+                    <div class="form-group"><label>WhatsApp Global</label><input type="text" name="whatsapp"></div>
+                    <div class="form-group"><label>Email Contato</label><input type="text" name="email"></div>
+                    <div class="form-group" style="grid-column: 1/-1;"><label>Endereço Completo</label><input type="text" name="endereco"></div>
+                </div>
+                
+                <h4 style="margin: 32px 0 16px; border-bottom: 1px solid var(--cinza-borda); padding-bottom: 8px;">Hero e Chamadas</h4>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                    <div class="form-group"><label>Chamada Principal (Hero)</label><input type="text" name="heroChamada"></div>
+                    <div class="form-group"><label>Subtítulo (Hero)</label><input type="text" name="heroSubtitulo"></div>
+                </div>
 
-<<<<<<< HEAD
-            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-pen"></i> Como alterar informações</h4>
-            <div class="admin-ajuda-block" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
-=======
-            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-pen"></i> Fluxo recomendado</h4>
-            <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
->>>>>>> ad69dbf053c4195978c75eb997bdae5b00477044
-              <p style="font-size: 15px; line-height: 1.8; color: var(--cinza-texto);">
-                <strong style="color: var(--azul-escuro);">Imóveis:</strong> edite no modal e salve. As capas e fotos novas sobem direto para o Supabase Storage.<br><br>
-                <strong style="color: var(--azul-escuro);">Configurações:</strong> telefone, WhatsApp, e-mail, hero e textos institucionais são persistidos imediatamente no banco.<br><br>
-                <strong style="color: var(--azul-escuro);">Campos avançados:</strong> use Exportar/Importar para trabalhar com o snapshot completo quando precisar ajustar galerias, carrossel da missão ou outros campos não expostos em formulário visual.<br><br>
-                <strong style="color: var(--azul-escuro);">Usuários:</strong> o login usa Supabase Auth. Novos administradores precisam de e-mail e senha.
-              </p>
-            </div>
-
-<<<<<<< HEAD
-            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-wrench"></i> Integração com E-mail</h4>
-            <div class="admin-ajuda-block" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
-              <p style="font-size: 14px; line-height: 1.8; color: var(--cinza-texto);">
-                Para receber os formulários por e-mail, siga um destes passos:<br><br>
-                <strong>Opção 1 - Formspree (gratuito, sem código):</strong><br>
-                1. Crie conta em formspree.io<br>
-                2. Crie um formulário e pegue o ID (ex: xabc1234)<br>
-                3. Em js/main.js, substitua <code>simulateEmailSend</code> por:<br>
-                <code style="background: #0d1117; color: #79c0ff; padding: 4px 8px; border-radius: 4px; display: block; margin-top: 8px;">
-                fetch('https://formspree.io/f/SEU_ID', { method:'POST', body: JSON.stringify(data), headers:{'Content-Type':'application/json'} })
-                </code><br>
-                <strong>Opção 2 - EmailJS (gratuito):</strong> emailjs.com<br>
-                <strong>Opção 3 - Backend PHP:</strong> Ver exemplo no arquivo js/admin.js
-              </p>
-            </div>
-
-            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-floppy-disk"></i> Backend para salvar dados automaticamente</h4>
-            <div class="admin-ajuda-block" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px;">
-              <p style="font-size: 14px; line-height: 1.8; color: var(--cinza-texto);">
-                Crie o arquivo <code>api/save.php</code> no servidor:
-              </p>
-              <div class="log-area" style="margin-top: 12px; font-size: 12px;">
-&lt;?php<br>
-header('Content-Type: application/json');<br>
-header('Access-Control-Allow-Origin: *');<br>
-header('Access-Control-Allow-Methods: POST');<br>
-<br>
-$data = file_get_contents('php://input');<br>
-json_decode($data); // valida JSON<br>
-<br>
-if (json_last_error() === JSON_ERROR_NONE) {<br>
-&nbsp;&nbsp;file_put_contents('../data/imoveis.json', $data);<br>
-&nbsp;&nbsp;echo json_encode(['ok' => true]);<br>
-} else {<br>
-&nbsp;&nbsp;http_response_code(400);<br>
-&nbsp;&nbsp;echo json_encode(['error' => 'JSON inválido']);<br>
-}<br>
-?>
-=======
-            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-key"></i> Variáveis obrigatórias</h4>
-            <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px;">
-              <div class="log-area" style="font-size: 12px;">
-SUPABASE_URL=https://seu-projeto.supabase.co<br>
-SUPABASE_ANON_KEY=eyJ...<br>
-SUPABASE_SERVICE_ROLE_KEY=eyJ...<br>
-SUPABASE_STORAGE_BUCKET=uploads
->>>>>>> ad69dbf053c4195978c75eb997bdae5b00477044
-              </div>
-            </div>
+                <h4 style="margin: 32px 0 16px; border-bottom: 1px solid var(--cinza-borda); padding-bottom: 8px;">Página Sobre</h4>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                    <div class="form-group"><label>Título Seção Sobre</label><input type="text" name="aboutTitle"></div>
+                    <div class="form-group"><label>Subtítulo</label><input type="text" name="aboutSubtitle"></div>
+                    <div class="form-group"><label>Descrição Completa</label><textarea name="aboutDescription" rows="5"></textarea></div>
+                    <div class="form-group"><label>Resumo (Página Inicial)</label><textarea name="aboutSummary" rows="2"></textarea></div>
+                    <div class="form-group"><label>Título Missão</label><input type="text" name="aboutMissionTitle"></div>
+                    <div class="form-group"><label>Texto Missão</label><textarea name="aboutMissionText" rows="3"></textarea></div>
+                </div>
+            </form>
           </div>
         </div>
       </div>
 
-    </div><!-- /admin-content -->
+      <!-- Seção Banco de Dados -->
+      <div id="section-database" class="admin-section" style="display:none;">
+        <div class="admin-panel">
+          <div class="panel-header">
+            <h3>Gerenciar Banco de Dados (JSON)</h3>
+            <div style="display: flex; gap: 12px;">
+              <button id="btn-export-json-2" class="btn btn-outline" onclick="exportarJSON()"><i class="fas fa-download"></i> Exportar JSON</button>
+              <button id="btn-import-json" class="btn btn-primary"><i class="fas fa-upload"></i> Importar JSON</button>
+            </div>
+          </div>
+          <div style="padding: 24px;">
+            <div style="background: #f1f5f9; border-left: 4px solid var(--azul); padding: 20px; border-radius: 4px; margin-bottom: 24px;">
+              <h4 style="margin-top:0; color: var(--azul-escuro);"><i class="fas fa-info-circle"></i> Tutorial: Como gerenciar seus dados</h4>
+              <p style="font-size: 14px; line-height: 1.6; color: var(--cinza-texto);">
+                Este site agora funciona de forma <strong>100% local</strong>, utilizando o arquivo <code>imoveis.json</code> como banco de dados.
+              </p>
+              <ul style="font-size: 14px; line-height: 1.8; color: var(--cinza-texto); padding-left: 20px;">
+                <li><strong>Exportar:</strong> Gera um arquivo com todos os seus imóveis, fotos e configurações atuais. Útil para backup.</li>
+                <li><strong>Importar:</strong> Permite que você carregue um arquivo JSON anterior. <em>Cuidado: isso substituirá todos os dados atuais!</em></li>
+                <li><strong>Imagens:</strong> Ao fazer upload de uma imagem, ela é salva automaticamente na pasta <code>assets/uploads/</code> do seu servidor.</li>
+              </ul>
+            </div>
+            
+            <h4 style="margin-bottom: 12px;">Visualização em tempo real (JSON)</h4>
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                <button id="btn-show-json" class="btn btn-outline btn-sm">Ver JSON Atual</button>
+            </div>
+            <pre id="json-preview" style="background: #1e293b; color: #e2e8f0; padding: 20px; border-radius: 8px; font-size: 12px; max-height: 400px; overflow: auto; border: 1px solid #334155;"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
-<!-- ============================================================
-     MODAL - CRIAR / EDITAR IMÓVEL
-     ============================================================ -->
+<!-- Modal Imóvel -->
 <div class="modal-overlay" id="modal-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width: 800px;">
     <div class="modal-header">
-      <h3 id="modal-titulo">Novo Imóvel</h3>
-      <button class="modal-close btn-close-modal-imovel">&times;</button>
+        <h3 id="modal-titulo">Editar Imóvel</h3>
+        <button class="modal-close btn-close-modal-imovel">&times;</button>
     </div>
     <div class="modal-body">
-      <form id="form-imovel">
-        <div class="form-grid">
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Nome do Imóvel *</label>
-            <input type="text" name="nome" placeholder="Ex: Sândalo Residence" required>
-          </div>
-          <div class="form-group">
-            <label>Bairro *</label>
-            <input type="text" name="bairro" placeholder="Ex: Papagaio">
-          </div>
-          <div class="form-group">
-            <label>Cidade</label>
-            <input type="text" name="cidade" placeholder="Feira de Santana - Bahia">
-          </div>
-          <div class="form-group">
-            <label>Nº de Quartos</label>
-            <select name="quartos">
-              <option value="1">1 Quarto</option>
-              <option value="2" selected>2 Quartos</option>
-              <option value="3">3 Quartos</option>
-              <option value="4">4 Quartos</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Metragem mínima (m²)</label>
-            <input type="text" name="metragem" placeholder="Ex: 36,30">
-          </div>
-          <div class="form-group">
-            <label>Status</label>
-            <select name="status">
-              <option>Lançamento</option>
-              <option>Em Obras</option>
-              <option>Pronto para Morar</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Tag do Badge</label>
-            <input type="text" name="tag" placeholder="Ex: Lançamento">
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Fonte da Imagem Principal *</label>
-            <div class="image-source-row">
-              <label><input type="radio" name="imagemSource" value="url" checked> URL</label>
-              <label><input type="radio" name="imagemSource" value="upload"> Upload</label>
+        <form id="form-imovel">
+            <input type="hidden" name="id">
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group" style="grid-column: 1/-1;"><label>Nome do Empreendimento</label><input type="text" name="nome" required></div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select name="tipo" id="imovel-tipo">
+                        <option value="casa">Casa / Apartamento</option>
+                        <option value="terreno">Terreno / Lote</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Bairro</label><input type="text" name="bairro"></div>
+                <div class="form-group"><label>Cidade</label><input type="text" name="cidade"></div>
+                <div class="form-group field-casa"><label>Nº de Quartos</label><input type="number" name="quartos" value="0"></div>
+                <div class="form-group"><label>Metragem (Ex: 200 ou 40 a 60)</label><input type="text" name="metragem"></div>
+                <div class="form-group"><label>Status (Ex: Lançamento, Em Obras)</label><input type="text" name="status"></div>
+                <div class="form-group"><label>Tag de Destaque (Ex: Pronto p/ Morar)</label><input type="text" name="tag"></div>
+                
+                <div class="form-group" style="grid-column: 1/-1;">
+                    <label>Fonte da Imagem de Capa</label>
+                    <div style="display: flex; gap: 20px; margin-top: 8px;">
+                        <label><input type="radio" name="imagemSource" value="url" checked> URL Externa</label>
+                        <label><input type="radio" name="imagemSource" value="upload"> Upload de Arquivo</label>
+                    </div>
+                </div>
+                
+                <div class="form-group image-imagem-url" style="grid-column: 1/-1;">
+                    <label>URL da Imagem</label>
+                    <input type="text" name="imagemUrl" placeholder="https://...">
+                </div>
+                
+                <div class="form-group image-imagem-upload" style="grid-column: 1/-1; display:none;">
+                    <label>Selecionar Arquivo</label>
+                    <input type="file" name="imagemFile" accept="image/*">
+                </div>
+                
+                <input type="hidden" name="imagemExisting">
+                
+                <div class="form-group" style="grid-column: 1/-1;"><label><input type="checkbox" name="destaque"> ⭐ Exibir este imóvel em destaque na página inicial</label></div>
+                <div class="form-group" style="grid-column: 1/-1;"><label>Descrição Detalhada</label><textarea name="descricao" rows="4"></textarea></div>
+                <div class="form-group" style="grid-column: 1/-1;"><label>Diferenciais (Separados por vírgula)</label><input type="text" name="diferenciais" placeholder="Piscina, Academia, Varanda..."></div>
+                <div class="form-group" style="grid-column: 1/-1;"><label>Localização (Texto)</label><input type="text" name="localizacao" placeholder="Ex: Rua Tal, 123 - Centro"></div>
+                <div class="form-group" style="grid-column: 1/-1;"><label>Link Google Maps (Opcional)</label><input type="text" name="mapsLink"></div>
             </div>
-          </div>
-          <div class="form-group image-imagem-url" style="grid-column: 1/-1;">
-            <label>URL da Imagem Principal *</label>
-            <input type="url" name="imagemUrl" placeholder="https://...">
-            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
-              Use uma URL pública ou um banner de 1240x420.
-            </small>
-          </div>
-          <div class="form-group image-imagem-upload" style="grid-column: 1/-1; display:none;">
-            <label>Upload da Imagem Principal *</label>
-            <input type="file" name="imagemFile" accept="image/*">
-            <small style="color: var(--cinza-texto); font-size: 12px; margin-top: 4px; display: block;">
-              Faça upload de um banner 1240x420. O arquivo será salvo em assets/uploads/ se o backend estiver disponível.
-            </small>
-          </div>
-          <input type="hidden" name="imagemExisting">
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Descrição do Imóvel</label>
-            <textarea name="descricao" rows="3" placeholder="Descreva o empreendimento..."></textarea>
-          </div>
-          <div class="form-group">
-            <label>Localização (texto)</label>
-            <input type="text" name="localizacao" placeholder="Ex: Papagaio, Feira de Santana, BA">
-          </div>
-          <div class="form-group">
-            <label>Link Google Maps</label>
-            <input type="url" name="mapsLink" placeholder="https://maps.google.com/...">
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Diferenciais (separados por vírgula)</label>
-            <input type="text" name="diferenciais" placeholder="Ex: Piscina, Academia, Salão de Festas, Playground">
-          </div>
-          <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" name="destaque" id="check-destaque" style="width: 18px; height: 18px;">
-            <label for="check-destaque" style="margin: 0; cursor: pointer;">⭐ Exibir em destaque na home</label>
-          </div>
+        </form>
+        
+        <div style="margin-top: 24px;">
+            <h4 style="margin-bottom: 12px; font-size: 16px;">Preview do Card</h4>
+            <div id="card-preview" style="background: #f1f5f9; padding: 20px; border-radius: 8px; display: flex; justify-content: center;"></div>
         </div>
-
-        <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
-          <h4 style="color: var(--azul-escuro); margin: 0 0 16px 0;">Plantas do Imóvel</h4>
-          <div id="plantas-list" style="margin-bottom: 12px;"></div>
-          <button type="button" id="btn-add-planta" class="btn btn-outline" style="font-size: 13px; padding: 8px 12px;">
-            + Adicionar Planta
-          </button>
-        </div>
-
-        <!-- SEÇÃO: CÔMODOS COM FOTOS -->
-        <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #3b82f6;">
-          <h4 style="color: var(--azul-escuro); margin: 0 0 16px 0; display: flex; align-items: center; gap: 8px;">
-            <i class="fas fa-images"></i> Fotos de Cômodos (Opcional)
-          </h4>
-          <div id="comodos-list" style="margin-bottom: 12px;">
-            <!-- Cômodos serão renderizados aqui -->
-          </div>
-          <button type="button" id="btn-add-comodo" class="btn btn-outline" style="font-size: 13px; padding: 8px 12px;">
-            + Adicionar Cômodo
-          </button>
-        </div>
-
-        <!-- PREVIEW -->
-        <div class="preview-card">
-          <p class="preview-label"><i class="fas fa-eye"></i> Pré-visualização do Card</p>
-          <div id="card-preview">Preencha o formulário para ver a prévia...</div>
-        </div>
-      </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline btn-cancel-imovel">Cancelar</button>
-      <button id="btn-save-imovel" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Salvar Imóvel</button>
+        <button class="btn btn-outline btn-close-modal-imovel">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-imovel">Salvar Imóvel</button>
     </div>
   </div>
 </div>
 
+<!-- Modal Carrossel -->
 <div class="modal-overlay" id="modal-carousel-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width: 600px;">
     <div class="modal-header">
-      <h3 id="modal-carousel-title">Novo Slide</h3>
-      <button class="modal-close btn-close-modal-carousel">&times;</button>
+        <h3 id="modal-carousel-title">Novo Slide</h3>
+        <button class="modal-close btn-close-modal-carousel">&times;</button>
     </div>
     <div class="modal-body">
-      <form id="form-carousel-item">
-        <div class="form-grid">
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Título *</label>
-            <input type="text" name="title" placeholder="Ex: Oferta especial" required>
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Texto</label>
-            <textarea name="subtitle" rows="3" placeholder="Ex: Campanha com condições exclusivas..."></textarea>
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <i class="fas fa-desktop" style="color: var(--azul);"></i>
-              <strong>Imagem para Desktop (Recomendado: 1240x420px)</strong>
-            </label>
-            <label style="display: block; margin-bottom: 8px;"><input type="radio" name="imageSource" value="url" checked> URL</label>
-            <div class="image-image-url" style="margin-bottom: 12px;">
-              <input type="url" name="imageUrl" placeholder="https://..." required>
+        <form id="form-carousel-item">
+            <input type="hidden" name="id">
+            <div class="form-group"><label>Título</label><input type="text" name="title" required></div>
+            <div class="form-group"><label>Subtítulo</label><input type="text" name="subtitle"></div>
+            <div class="form-group"><label>Link (URL ou Caminho)</label><input type="text" name="link"></div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label>Imagem Desktop</label>
+                <div style="display: flex; gap: 10px; margin: 8px 0;">
+                    <label><input type="radio" name="imageSource" value="url" checked> URL</label>
+                    <label><input type="radio" name="imageSource" value="upload"> Upload</label>
+                </div>
+                <div class="image-image-url"><input type="text" name="imageUrl" placeholder="URL da imagem desktop"></div>
+                <div class="image-image-upload" style="display:none;"><input type="file" name="imageFile" accept="image/*"></div>
+                <input type="hidden" name="imageExisting">
             </div>
-            <label style="display: block; margin-bottom: 8px;"><input type="radio" name="imageSource" value="upload"> Upload</label>
-            <div class="image-image-upload" style="display:none; margin-bottom: 12px;">
-              <input type="file" name="imageFile" accept="image/*">
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label>Imagem Mobile (Responsivo)</label>
+                <div style="display: flex; gap: 10px; margin: 8px 0;">
+                    <label><input type="radio" name="imageMobileSource" value="url" checked> URL</label>
+                    <label><input type="radio" name="imageMobileSource" value="upload"> Upload</label>
+                </div>
+                <div class="image-imageMobile-url"><input type="text" name="imageMobileUrl" placeholder="URL da imagem mobile"></div>
+                <div class="image-imageMobile-upload" style="display:none;"><input type="file" name="imageMobileFile" accept="image/*"></div>
+                <input type="hidden" name="imageMobileExisting">
             </div>
-            <input type="hidden" name="imageExisting">
-          </div>
-          <div class="form-group" style="grid-column: 1/-1; border-top: 1px solid var(--cinza-borda); padding-top: 16px; margin-top: 12px;">
-            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <i class="fas fa-mobile-alt" style="color: var(--verde);"></i>
-              <strong>Imagem para Mobile (Opcional - Recomendado: 600x400px)</strong>
-            </label>
-            <label style="display: block; margin-bottom: 8px;"><input type="radio" name="imageMobileSource" value="url"> URL</label>
-            <div class="image-imageMobile-url" style="margin-bottom: 12px;">
-              <input type="url" name="imageMobileUrl" placeholder="https://...">
-            </div>
-            <label style="display: block; margin-bottom: 8px;"><input type="radio" name="imageMobileSource" value="upload"> Upload</label>
-            <div class="image-imageMobile-upload" style="display:none; margin-bottom: 12px;">
-              <input type="file" name="imageMobileFile" accept="image/*">
-            </div>
-            <input type="hidden" name="imageMobileExisting">
-            <small style="color: var(--cinza-texto); font-size: 12px; display: block; margin-top: 8px;">
-              <i class="fas fa-lightbulb"></i> Se não informar uma imagem mobile, será usada a versão desktop. Deixe em branco para usar apenas a imagem desktop.
-            </small>
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Link do slide</label>
-            <input type="url" name="link" placeholder="pages/imoveis.html">
-          </div>
-        </div>
-      </form>
+        </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline btn-cancel-carousel">Cancelar</button>
-      <button id="btn-save-carousel" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Salvar Slide</button>
+        <button class="btn btn-outline btn-close-modal-carousel">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-carousel">Salvar Slide</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-user-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modal-user-title">Novo Usuário</h3>
-      <button class="modal-close btn-close-modal-user">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="form-user-item">
-        <div class="form-grid">
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Nome completo *</label>
-            <input type="text" name="name" placeholder="Ex: Nome do Admin" required>
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>E-mail *</label>
-            <input type="email" name="email" placeholder="admin@cellicruz.com.br" required>
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Senha <small style="font-weight:400; color: var(--cinza-texto);">(deixe em branco para não alterar)</small></label>
-            <input type="password" name="password" placeholder="********">
-          </div>
-          <div class="form-group" style="grid-column: 1/-1;">
-            <label>Confirmar senha</label>
-            <input type="password" name="passwordConfirm" placeholder="********">
-          </div>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline btn-cancel-user">Cancelar</button>
-      <button id="btn-save-user" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Salvar Usuário</button>
-    </div>
-  </div>
-</div>
+<script src="../js/supabase-client.js?v=1.1.1"></script>
+<script src="../js/admin-auth.js?v=1.1.1"></script>
+<script src="../js/admin.js?v=1.1.1"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/api/runtime-config.js"></script>
-<script src="../js/supabase-client.js"></script>
-<script src="../js/admin-auth.js"></script>
-<script src="../js/admin.js"></script>
-<script>
-// Função auxiliar para mostrar JSON atual
-function mostrarJSON() {
-  document.getElementById('json-preview').textContent = JSON.stringify(appData, null, 2);
-}
-
-// Atualiza título topbar ao mudar seção
-const originais = {
-  imoveis: 'Gerenciar Imóveis',
-  config: 'Configurações do Site',
-  whatsapp: 'WhatsApp e Loteamentos',
-  usuarios: 'Usuários Admin',
-  carousel: 'Carrossel de Publicidade',
-  dados: 'Importar / Exportar Dados',
-  ajuda: 'Ajuda & Documentação'
-};
-
-const _showSection = showSection;
-window.showSection = function(id) {
-  _showSection(id);
-  document.getElementById('topbar-titulo').textContent = originais[id] || 'Admin';
-};
-
-// Mobile sidebar toggle
-document.addEventListener('DOMContentLoaded', () => {
-  const menuBtn = document.getElementById('admin-menu-toggle');
-  const sidebar = document.getElementById('admin-sidebar');
-  const overlay = document.getElementById('admin-sidebar-overlay');
-  if (!menuBtn || !sidebar || !overlay) return;
-
-  function openSidebar() {
-    sidebar.classList.add('open');
-    overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeSidebar() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  menuBtn.addEventListener('click', openSidebar);
-  overlay.addEventListener('click', closeSidebar);
-
-  sidebar.querySelectorAll('.sidebar-link[data-section]').forEach(link => {
-    link.addEventListener('click', () => {
-      if (window.innerWidth <= 900) closeSidebar();
-    });
-  });
-});
-</script>
 </body>
 </html>
