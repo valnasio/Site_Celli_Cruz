@@ -14,8 +14,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar dumb-init para handle de signals
-RUN apk add --no-cache dumb-init
+# Instalar dumb-init e su-exec (para troca de usuário com permissão)
+RUN apk add --no-cache dumb-init su-exec
 
 # Copiar node_modules do builder
 COPY --from=builder /app/node_modules ./node_modules
@@ -26,21 +26,21 @@ COPY . /app
 # Criar diretórios necessários
 RUN mkdir -p /app/data /app/assets/uploads
 
-# Ajustar permissões para o usuário nodejs
-RUN chown -R 1001:1001 /app/data /app/assets/uploads && chmod -R 775 /app/data /app/assets/uploads
+# Criar usuário nodejs
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "require('http').get('http://localhost:8000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Executar como non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
-USER nodejs
+# Configurar o entrypoint
+RUN chmod +x /app/scripts/docker-entrypoint.sh
 
 # Expor porta
 EXPOSE 8000
 
-# Usar dumb-init para melhor handling de signals
-ENTRYPOINT ["dumb-init", "--"]
+# Usar o script customizado como entrypoint
+ENTRYPOINT ["dumb-init", "--", "/app/scripts/docker-entrypoint.sh"]
 
-# Iniciar servidor
+# Comando padrão
 CMD ["node", "server.js"]

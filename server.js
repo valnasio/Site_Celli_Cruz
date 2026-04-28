@@ -38,12 +38,21 @@ const upload = multer({
 });
 
 function readData() {
+  const defaults = {
+    config: {},
+    about: {},
+    carousel: [],
+    adminUsers: [],
+    imoveis: [],
+    whatsappOptions: []
+  };
   try {
-    if (!fs.existsSync(DATA_PATH)) return {};
-    return JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
+    if (!fs.existsSync(DATA_PATH)) return defaults;
+    const data = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
+    return { ...defaults, ...data };
   } catch (error) {
     console.error('Erro ao ler imoveis.json:', error);
-    return {};
+    return defaults;
   }
 }
 

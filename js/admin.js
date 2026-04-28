@@ -35,7 +35,15 @@ async function loadSiteSnapshot(force = false) {
 }
 
 function setAppData(nextData) {
-  appData = nextData;
+  const defaults = {
+    config: {},
+    about: {},
+    imoveis: [],
+    carousel: [],
+    whatsappOptions: [],
+    adminUsers: [],
+  };
+  appData = { ...defaults, ...nextData };
   window.appData = appData;
 }
 
