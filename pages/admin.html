@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="../css/admin.css">
   <link rel="icon" type="image/png" href="../assets/logo.png">
   <style>
-    /* Estilos específicos para o layout admin que não estão no admin.css */
     :root {
       --azul-escuro: #0f172a;
       --azul: #2563eb;
@@ -42,6 +41,7 @@
       position: sticky;
       top: 0;
       height: 100vh;
+      overflow-y: auto;
     }
 
     .sidebar-logo {
@@ -50,9 +50,7 @@
       filter: brightness(0) invert(1);
     }
 
-    .sidebar-nav {
-      flex: 1;
-    }
+    .sidebar-nav { flex: 1; }
 
     .sidebar-link {
       display: flex;
@@ -66,7 +64,6 @@
       transition: 0.2s;
       cursor: pointer;
     }
-
     .sidebar-link:hover, .sidebar-link.active {
       background: rgba(255,255,255,0.1);
       color: white;
@@ -86,20 +83,48 @@
       margin: 0 auto;
       width: 100%;
       box-sizing: border-box;
+      min-width: 0;
     }
 
     .admin-topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 16px;
       margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .admin-topbar h2 { margin: 0; font-size: 24px; font-weight: 700; }
+
+    .topbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
     }
 
-    .admin-topbar h2 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 700;
+    /* Hambúrguer — visível apenas no mobile */
+    .admin-menu-btn {
+      display: none;
+      background: white;
+      border: 1px solid var(--cinza-borda);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--azul-escuro);
+      line-height: 1;
     }
+
+    /* Overlay do sidebar mobile */
+    .admin-sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1999;
+    }
+    .admin-sidebar-overlay.open { display: block; }
 
     .admin-panel {
       background: white;
@@ -107,6 +132,7 @@
       box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
       border: 1px solid var(--cinza-borda);
       margin-bottom: 32px;
+      overflow: hidden;
     }
 
     .panel-header {
@@ -115,39 +141,37 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
     }
+    .panel-header h3 { margin: 0; font-size: 18px; }
 
-    .panel-header h3 {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    /* Stats */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
       margin-bottom: 32px;
     }
 
     .stat-card {
       background: white;
-      padding: 24px;
+      padding: 20px;
       border-radius: var(--radius);
       border: 1px solid var(--cinza-borda);
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
     }
 
     .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 18px;
+      flex-shrink: 0;
     }
 
     .icon-blue { background: #eff6ff; color: #2563eb; }
@@ -155,28 +179,138 @@
     .icon-green { background: #f0fdf4; color: #16a34a; }
     .icon-red { background: #fef2f2; color: #dc2626; }
 
-    .stat-info p {
-      margin: 0;
-      font-size: 13px;
-      color: var(--cinza-texto);
+    .stat-info p { margin: 0; font-size: 13px; color: var(--cinza-texto); }
+    .stat-info span { font-size: 20px; font-weight: 700; }
+
+    /* Grids de formulário responsivos */
+    .admin-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
     }
 
-    .stat-info span {
-      font-size: 20px;
-      font-weight: 700;
-    }
+    /* Tabela admin — scroll horizontal em telas pequenas */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    /* Responsividade */
+    /* --- RESPONSIVIDADE --- */
     @media (max-width: 900px) {
       .admin-layout { grid-template-columns: 1fr; }
-      .admin-sidebar { display: none; }
-      .admin-main { padding: 16px; }
-      .admin-topbar { flex-direction: column; align-items: flex-start; gap: 16px; }
+
+      .admin-sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        bottom: 0;
+        width: 260px;
+        height: 100%;
+        z-index: 2000;
+        transition: left 0.3s ease;
+        display: flex;
+      }
+      .admin-sidebar.open { left: 0; }
+
+      .admin-menu-btn { display: block; }
+      .topbar-ver-site { display: none; }
+
+      .admin-main { padding: 20px 16px; }
+      .admin-topbar { margin-bottom: 24px; }
+      .stats-row { gap: 12px; }
+    }
+
+    @media (max-width: 600px) {
+      .admin-form-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stat-card { padding: 14px; gap: 10px; }
+      .stat-icon { width: 36px; height: 36px; font-size: 15px; }
+      .stat-info span { font-size: 17px; }
+      .panel-header { padding: 14px 16px; }
+      .panel-header h3 { font-size: 16px; }
+      .topbar-actions .btn { padding: 8px 14px; font-size: 13px; }
+    }
+
+    /* ── TABELAS RESPONSIVAS: card layout ── */
+    @media (max-width: 720px) {
+      /* Remove estrutura de tabela para virar cards */
+      .admin-table { border: none; display: block; }
+      .admin-table thead { display: none; }
+      .admin-table tbody { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+      .admin-table tfoot { display: block; }
+
+      /* Cada linha → card */
+      .admin-table tr {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        border: 1px solid var(--cinza-borda);
+        border-radius: 10px;
+        padding: 14px;
+        background: white;
+        margin: 0;
+      }
+
+      /* Células genéricas */
+      .admin-table td {
+        display: flex;
+        flex-direction: column;
+        border: none;
+        padding: 0;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      /* Rótulo automático via data-label */
+      .admin-table td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        color: var(--cinza-texto);
+        margin-bottom: 3px;
+      }
+
+      /* Colunas desnecessárias no mobile */
+      .admin-table td[data-label="ID"],
+      .admin-table td[data-label="Destaque"] { display: none; }
+
+      /* Sem rótulo para foto e ações */
+      .admin-table td[data-label="Foto"]::before,
+      .admin-table td[data-label="Ações"]::before { content: none; }
+
+      /* ── Layout especial da tabela de imóveis ── */
+      #imoveis-tbody tr {
+        display: grid;
+        grid-template-columns: 68px 1fr auto;
+        grid-template-areas:
+          "foto  nome     acoes"
+          "foto  status   acoes"
+          "foto  detalhes acoes";
+        column-gap: 12px;
+        row-gap: 4px;
+        align-items: center;
+      }
+
+      #imoveis-tbody td { padding: 0; }
+      #imoveis-tbody td::before { display: none; }
+      #imoveis-tbody td[data-label="ID"],
+      #imoveis-tbody td[data-label="Destaque"] { display: none; }
+
+      #imoveis-tbody td[data-label="Foto"]     { grid-area: foto;     align-self: center; }
+      #imoveis-tbody td[data-label="Imóvel"]   { grid-area: nome;     align-self: end; }
+      #imoveis-tbody td[data-label="Status"]   { grid-area: status;   align-self: center; }
+      #imoveis-tbody td[data-label="Detalhes"] { grid-area: detalhes; align-self: start; font-size: 12px; color: var(--cinza-texto); }
+      #imoveis-tbody td[data-label="Ações"]    { grid-area: acoes;    align-self: center; }
+
+      .imovel-thumb { width: 68px !important; height: 54px !important; border-radius: 8px; object-fit: cover; }
+
+      /* Botões de ação em coluna */
+      .action-btns { flex-direction: column; gap: 6px; }
     }
   </style>
 </head>
 <body>
 
+<div class="admin-sidebar-overlay" id="admin-sidebar-overlay"></div>
 <div class="admin-layout">
   <aside class="admin-sidebar" id="admin-sidebar">
     <div class="sidebar-header">
@@ -210,13 +344,18 @@
 
   <main class="admin-main">
     <div class="admin-topbar">
-      <div>
-        <h2 id="topbar-titulo">Gerenciar Imóveis</h2>
-        <p style="margin: 4px 0 0; font-size: 13px; color: var(--cinza-texto);">Logado como <strong id="admin-user-name">—</strong></p>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <button class="admin-menu-btn" id="btn-toggle-sidebar" aria-label="Abrir menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div>
+          <h2 id="topbar-titulo">Gerenciar Imóveis</h2>
+          <p style="margin: 4px 0 0; font-size: 13px; color: var(--cinza-texto);">Logado como <strong id="admin-user-name">—</strong></p>
+        </div>
       </div>
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <button id="btn-export-json" class="btn btn-outline" title="Exportar dados para JSON"><i class="fas fa-download"></i> JSON</button>
-        <a href="../index.html" target="_blank" class="btn btn-outline">Ver Site</a>
+      <div class="topbar-actions">
+        <button id="btn-export-json" class="btn btn-outline" title="Exportar JSON"><i class="fas fa-download"></i> JSON</button>
+        <a href="../index.html" target="_blank" class="btn btn-outline topbar-ver-site">Ver Site</a>
         <button id="btn-logout" class="btn btn-outline">Sair</button>
       </div>
     </div>
@@ -251,7 +390,7 @@
               <button id="btn-new-imovel" class="btn btn-primary">+ Novo Imóvel</button>
             </div>
           </div>
-          <div style="overflow-x: auto;">
+          <div class="table-scroll">
             <table class="admin-table">
               <thead>
                 <tr>
@@ -279,7 +418,7 @@
             <h3>Slides do Carrossel</h3>
             <button id="btn-new-carousel" class="btn btn-primary">+ Novo Slide</button>
           </div>
-          <div style="overflow-x: auto;">
+          <div class="table-scroll">
             <table class="admin-table">
               <thead>
                 <tr>
@@ -325,7 +464,7 @@
             <div style="padding: 24px;">
                 <form id="form-whatsapp-option">
                     <input type="hidden" name="id">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="admin-form-grid">
                         <div class="form-group"><label>Título (Ex: Vendas)</label><input type="text" name="title" required></div>
                         <div class="form-group"><label>WhatsApp (Número com DDD)</label><input type="text" name="whatsapp" required></div>
                         <div class="form-group" style="grid-column: 1/-1;"><label>Descrição (opcional)</label><textarea name="description" rows="2"></textarea></div>
@@ -346,7 +485,7 @@
             <h3>Usuários Administradores</h3>
             <button id="btn-new-user" class="btn btn-primary">+ Novo Usuário</button>
           </div>
-          <div style="overflow-x: auto;">
+          <div class="table-scroll">
             <table class="admin-table">
               <thead>
                 <tr>
@@ -371,7 +510,7 @@
           </div>
           <div style="padding: 24px;">
             <form id="form-config">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="admin-form-grid">
                     <div class="form-group"><label>Nome Empresa</label><input type="text" name="nomeEmpresa"></div>
                     <div class="form-group"><label>Telefone Exibição</label><input type="text" name="telefone"></div>
                     <div class="form-group"><label>WhatsApp Global</label><input type="text" name="whatsapp"></div>
@@ -444,7 +583,7 @@
     <div class="modal-body">
         <form id="form-imovel">
             <input type="hidden" name="id">
-            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="admin-form-grid">
                 <div class="form-group" style="grid-column: 1/-1;"><label>Nome do Empreendimento</label><input type="text" name="nome" required></div>
                 <div class="form-group">
                     <label>Tipo</label>
@@ -547,6 +686,34 @@
 <script src="../js/supabase-client.js?v=1.1.1"></script>
 <script src="../js/admin-auth.js?v=1.1.1"></script>
 <script src="../js/admin.js?v=1.1.1"></script>
+<script>
+  (function () {
+    var sidebar = document.getElementById('admin-sidebar');
+    var overlay = document.getElementById('admin-sidebar-overlay');
+    var btnToggle = document.getElementById('btn-toggle-sidebar');
+
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+    }
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+    }
+
+    btnToggle.addEventListener('click', function () {
+      sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    });
+
+    overlay.addEventListener('click', closeSidebar);
+
+    document.querySelectorAll('.sidebar-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        if (window.innerWidth <= 900) closeSidebar();
+      });
+    });
+  })();
+</script>
 
 </body>
 </html>

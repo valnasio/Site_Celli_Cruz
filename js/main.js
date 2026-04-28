@@ -150,7 +150,6 @@ function initAnimations() {
   }, { threshold: 0.05, rootMargin: '0px 0px -20px 0px' });
 
   elements.forEach((element, index) => {
-    // Only apply staggered delay if not already set
     if (!element.classList.contains('full-section') && !element.style.transitionDelay) {
       element.style.transitionDelay = `${(index % 8) * 0.1}s`;
     }
@@ -169,7 +168,7 @@ function showToast(message, type) {
   toast.className = `toast ${type || 'success'}`;
   toast.textContent = message;
   toast.classList.add('show');
-  window.setTimeout(() => toast.classList.remove('show'), 3500);
+  setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
 function renderDiferenciais(container) {
@@ -292,32 +291,6 @@ function renderCarouselIndicators(items) {
   });
 }
 
-function setActiveCarouselIndicator(index) {
-  document.querySelectorAll('.carousel-indicator').forEach((button, buttonIndex) => {
-    button.classList.toggle('active', buttonIndex === index);
-  });
-}
-
-function getActiveCarouselIndex(track) {
-  const slides = Array.from(track.querySelectorAll('.carousel-slide'));
-  if (!slides.length) return 0;
-
-  const trackCenter = track.scrollLeft + (track.clientWidth / 2);
-  let closestIndex = 0;
-  let smallestDistance = Number.POSITIVE_INFINITY;
-
-  slides.forEach((slide, index) => {
-    const slideCenter = slide.offsetLeft + (slide.offsetWidth / 2);
-    const distance = Math.abs(trackCenter - slideCenter);
-    if (distance < smallestDistance) {
-      smallestDistance = distance;
-      closestIndex = index;
-    }
-  });
-
-  return closestIndex;
-}
-
 function scrollCarouselToIndex(index) {
   const track = document.getElementById('carousel-track');
   if (!track) return;
@@ -326,46 +299,48 @@ function scrollCarouselToIndex(index) {
   track.scrollTo({ left: slide.offsetLeft, behavior: 'smooth' });
 }
 
-function initCarouselAutoScroll() {
-  const track = document.getElementById('carousel-track');
-  if (!track || track.children.length <= 1) return;
+function initCarouselAutoScroll(trackEl, indicatorsEl) {
+  if (!trackEl || trackEl.children.length <= 1) return;
 
   let paused = false;
   let scrolling = false;
 
-  const updateIndicator = () => {
-    setActiveCarouselIndicator(getActiveCarouselIndex(track));
-  };
-
-  const goToNextSlide = () => {
-    if (scrolling) return;
-    const slides = Array.from(track.querySelectorAll('.carousel-slide'));
-    if (!slides.length) return;
-
-    const slideWidth = slides[0].offsetWidth;
-    const next = track.scrollLeft + slideWidth + 22;
-    const max = track.scrollWidth - track.clientWidth;
-
-    scrolling = true;
-    track.scrollTo({
-      left: next >= max - 5 ? 0 : next,
-      behavior: 'smooth',
+  const getActiveIndex = () => {
+    const slides = Array.from(trackEl.querySelectorAll('.carousel-slide'));
+    if (!slides.length) return 0;
+    const center = trackEl.scrollLeft + trackEl.clientWidth / 2;
+    let closest = 0;
+    let minDist = Infinity;
+    slides.forEach((slide, i) => {
+      const dist = Math.abs(slide.offsetLeft + slide.offsetWidth / 2 - center);
+      if (dist < minDist) { minDist = dist; closest = i; }
     });
-
-    window.setTimeout(() => {
-      scrolling = false;
-    }, 500);
+    return closest;
   };
 
-  track.addEventListener('mouseenter', () => { paused = true; });
-  track.addEventListener('mouseleave', () => { paused = false; });
-  track.addEventListener('scroll', () => requestAnimationFrame(updateIndicator), { passive: true });
+  const updateIndicators = () => {
+    if (!indicatorsEl) return;
+    const active = getActiveIndex();
+    indicatorsEl.querySelectorAll('.carousel-indicator').forEach((btn, i) => {
+      btn.classList.toggle('active', i === active);
+    });
+  };
 
-  window.setInterval(() => {
-    if (!paused && !scrolling) {
-      goToNextSlide();
-    }
-  }, 5000);
+  const goNext = () => {
+    if (scrolling) return;
+    const slides = Array.from(trackEl.querySelectorAll('.carousel-slide'));
+    if (!slides.length) return;
+    const next = trackEl.scrollLeft + slides[0].offsetWidth + 22;
+    const max = trackEl.scrollWidth - trackEl.clientWidth;
+    scrolling = true;
+    trackEl.scrollTo({ left: next >= max - 5 ? 0 : next, behavior: 'smooth' });
+    setTimeout(() => { scrolling = false; }, 500);
+  };
+
+  trackEl.addEventListener('mouseenter', () => { paused = true; });
+  trackEl.addEventListener('mouseleave', () => { paused = false; });
+  trackEl.addEventListener('scroll', () => requestAnimationFrame(updateIndicators), { passive: true });
+  setInterval(() => { if (!paused && !scrolling) goNext(); }, 5000);
 }
 
 function getWhatsAppOptionsFromData(data) {
@@ -564,10 +539,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderCarousel(document.getElementById('carousel-track'), data.carousel || []);
     renderDiferenciais(document.getElementById('dif-grid'));
     renderHomeAbout(data.about || {});
-    initCarouselAutoScroll();
-    
-    // Inicializa animações após o conteúdo dinâmico ser renderizado
-    window.requestAnimationFrame(() => initAnimations());
+    initCarouselAutoScroll(
+      document.getElementById('carousel-track'),
+      document.getElementById('carousel-indicators')
+    );
+    requestAnimationFrame(() => initAnimations());
   } catch (error) {
     console.error('[main] Falha ao carregar dados do Supabase', error);
     const homeGrid = document.getElementById('vitrine-imoveis');

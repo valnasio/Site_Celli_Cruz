@@ -27,7 +27,10 @@ async function initSobrePage() {
     : data.carousel || [];
 
   renderMissionCarousel(missionItems);
-  initMissionCarouselAutoScroll();
+  initCarouselAutoScroll(
+    document.getElementById('mission-carousel-track'),
+    document.getElementById('mission-carousel-indicators')
+  );
 }
 
 function renderMissionCarousel(items) {
@@ -65,36 +68,10 @@ function renderMissionCarousel(items) {
 
 function formatTextToHtml(text) {
   if (!text) return '';
-  return sanitizeHtml(text.trim()
+  return text.trim()
     .split(/\n{2,}/g)
-    .map(paragraph => `<p>${sanitizeHtml(paragraph.trim()).replace(/\n/g, '<br>')}</p>`)
-    .join(''));
-}
-
-function getActiveMissionCarouselIndex(track) {
-  const slides = Array.from(track.querySelectorAll('.carousel-slide'));
-  if (!slides.length) return 0;
-
-  const trackCenter = track.scrollLeft + track.clientWidth / 2;
-  let closestIndex = 0;
-  let minDistance = Infinity;
-
-  slides.forEach((slide, index) => {
-    const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
-    const distance = Math.abs(trackCenter - slideCenter);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestIndex = index;
-    }
-  });
-
-  return closestIndex;
-}
-
-function setActiveMissionCarouselIndicator(index) {
-  document.querySelectorAll('#mission-carousel-indicators .carousel-indicator').forEach((button, idx) => {
-    button.classList.toggle('active', idx === index);
-  });
+    .map(paragraph => `<p>${sanitizeString(paragraph.trim()).replace(/\n/g, '<br>')}</p>`)
+    .join('');
 }
 
 function scrollMissionCarouselToIndex(index) {
@@ -103,51 +80,6 @@ function scrollMissionCarouselToIndex(index) {
   const slide = track.querySelectorAll('.carousel-slide')[index];
   if (!slide) return;
   track.scrollTo({ left: slide.offsetLeft, behavior: 'smooth' });
-}
-
-function initMissionCarouselAutoScroll() {
-  const track = document.getElementById('mission-carousel-track');
-  if (!track || track.children.length <= 1) return;
-
-  let paused = false;
-  let isScrolling = false;
-  const slideGap = 22;
-  const intervalMs = 5000;
-
-  const updateIndicator = () => {
-    const activeIndex = getActiveMissionCarouselIndex(track);
-    setActiveMissionCarouselIndicator(activeIndex);
-  };
-
-  const scrollToNextSlide = () => {
-    if (isScrolling) return;
-
-    const slides = Array.from(track.querySelectorAll('.carousel-slide'));
-    if (slides.length === 0) return;
-
-    const slideWidth = slides[0].offsetWidth;
-    const maxScroll = track.scrollWidth - track.clientWidth;
-    const currentScroll = track.scrollLeft;
-    let nextScroll = currentScroll + slideWidth + slideGap;
-
-    if (nextScroll >= maxScroll - 5) {
-      nextScroll = 0;
-    }
-
-    isScrolling = true;
-    track.scrollTo({ left: nextScroll, behavior: 'smooth' });
-    setTimeout(() => { isScrolling = false; }, 500);
-  };
-
-  track.addEventListener('mouseenter', () => { paused = true; });
-  track.addEventListener('mouseleave', () => { paused = false; });
-  track.addEventListener('scroll', () => { requestAnimationFrame(updateIndicator); }, { passive: true });
-
-  setInterval(() => {
-    if (!paused && !isScrolling) {
-      scrollToNextSlide();
-    }
-  }, intervalMs);
 }
 
 window.addEventListener('DOMContentLoaded', initSobrePage);

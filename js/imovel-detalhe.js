@@ -12,8 +12,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.title = `${imovel.nome} | Celli Cruz`;
-    document.getElementById('hero-img').src = resolveMediaPath(imovel.imagem);
-    document.getElementById('hero-img').alt = imovel.nome || '';
+    const heroImg = document.getElementById('hero-img');
+    heroImg.src = resolveMediaPath(imovel.imagem);
+    heroImg.alt = imovel.nome || '';
     document.getElementById('hero-nome').textContent = imovel.nome || '';
     document.getElementById('hero-badge').textContent = imovel.tag || '';
     document.querySelector('#hero-local span').textContent = `${imovel.bairro || ''}, ${imovel.cidade || ''}`;
@@ -136,7 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const outros = (data.imoveis || []).filter((item) => Number(item.id) !== id).slice(0, 3);
     document.getElementById('outros-imoveis').innerHTML = outros.map((item) => criarCardImovel(item)).join('');
-    window.setTimeout(initAnimations, 80);
+    setTimeout(initAnimations, 80);
   } catch (error) {
     console.error(error);
   }

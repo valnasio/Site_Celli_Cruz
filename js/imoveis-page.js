@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       grid.style.display = 'grid';
       emptyState.style.display = 'none';
       grid.innerHTML = visibleImoveis.map((imovel) => criarCardImovel(imovel)).join('');
-      window.setTimeout(initAnimations, 50);
+      setTimeout(initAnimations, 50);
     }
 
     function applyFilters() {

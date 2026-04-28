@@ -69,7 +69,7 @@ function showAdminToast(message, type = 'success') {
   toast.className = `toast ${type}`;
   toast.innerHTML = message;
   toast.classList.add('show');
-  window.setTimeout(() => toast.classList.remove('show'), 4000);
+  setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
 async function saveCurrentData() {
@@ -85,11 +85,10 @@ async function saveCurrentData() {
 
 async function loadAdminData() {
   const [siteSnapshot] = await Promise.all([
-    fetchSiteData({ force: true }),
+    window.fetchSiteData({ force: true }),
   ]);
 
   setAppData(siteSnapshot);
-  console.log('[admin] appData carregado:', appData);
 
   renderDashboard();
   renderTable(document.getElementById('search-imovel')?.value || '');
@@ -142,16 +141,16 @@ function renderTable(filter = '') {
 
   tbody.innerHTML = rows.map((imovel) => `
     <tr>
-      <td>${imovel.id}</td>
-      <td><img src="${resolveAdminMediaPath(imovel.imagem)}" class="imovel-thumb" alt="${escapeHtml(imovel.nome || '')}"></td>
-      <td>
-        <strong>${escapeHtml(imovel.nome || '')}</strong><br>
+      <td data-label="ID">${imovel.id}</td>
+      <td data-label="Foto"><img src="${resolveAdminMediaPath(imovel.imagem)}" class="imovel-thumb" alt="${escapeHtml(imovel.nome || '')}"></td>
+      <td data-label="Imóvel">
+        <strong>${escapeHtml(imovel.nome || '')}</strong>
         <span style="font-size: 12px; color: var(--cinza-texto)">${escapeHtml(imovel.bairro || '')}</span>
       </td>
-      <td>${escapeHtml(String(imovel.quartos || ''))} quartos · ${escapeHtml(imovel.metragem || '-')} m2</td>
-      <td><span class="badge ${badgeClass(imovel.status)}">${escapeHtml(imovel.status || '')}</span></td>
-      <td>${imovel.destaque ? 'Sim' : 'Nao'}</td>
-      <td>
+      <td data-label="Status"><span class="badge ${badgeClass(imovel.status)}">${escapeHtml(imovel.status || '')}</span></td>
+      <td data-label="Detalhes">${escapeHtml(String(imovel.quartos || ''))} quartos · ${escapeHtml(imovel.metragem || '-')} m²</td>
+      <td data-label="Destaque">${imovel.destaque ? '⭐ Sim' : 'Não'}</td>
+      <td data-label="Ações">
         <div class="action-btns">
           <button class="btn-icon btn-edit" data-action="edit-imovel" data-id="${imovel.id}" title="Editar"><i class="fas fa-pen"></i></button>
           <button class="btn-icon btn-delete" data-action="delete-imovel" data-id="${imovel.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
@@ -164,7 +163,6 @@ function renderTable(filter = '') {
 function renderCarouselTable() {
   const tbody = document.getElementById('carousel-tbody');
   if (!tbody) return;
-  console.log('[admin] Renderizando carrossel:', appData.carousel);
 
   if (!appData.carousel.length) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum slide encontrado.</td></tr>';
@@ -173,11 +171,11 @@ function renderCarouselTable() {
 
   tbody.innerHTML = appData.carousel.map((item) => `
     <tr>
-      <td>${item.id}</td>
-      <td><img src="${resolveAdminMediaPath(item.imageDesktop || item.image)}" class="imovel-thumb" alt="${escapeHtml(item.title || '')}"></td>
-      <td>${escapeHtml(item.title || '')}</td>
-      <td>${escapeHtml(item.subtitle || '')}</td>
-      <td>
+      <td data-label="ID">${item.id}</td>
+      <td data-label="Foto"><img src="${resolveAdminMediaPath(item.imageDesktop || item.image)}" class="imovel-thumb" alt="${escapeHtml(item.title || '')}"></td>
+      <td data-label="Título">${escapeHtml(item.title || '')}</td>
+      <td data-label="Subtítulo">${escapeHtml(item.subtitle || '')}</td>
+      <td data-label="Ações">
         <div class="action-btns">
           <button class="btn-icon btn-edit" data-action="edit-carousel" data-id="${item.id}" title="Editar"><i class="fas fa-pen"></i></button>
           <button class="btn-icon btn-delete" data-action="delete-carousel" data-id="${item.id}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
@@ -190,7 +188,6 @@ function renderCarouselTable() {
 function renderAdminUsersTable() {
   const tbody = document.getElementById('admin-users-tbody');
   if (!tbody) return;
-  console.log('[admin] Renderizando usuarios:', appData.adminUsers);
 
   if (!appData.adminUsers.length) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color: var(--cinza-texto);">Nenhum usuario administrador encontrado.</td></tr>';
@@ -199,10 +196,10 @@ function renderAdminUsersTable() {
 
   tbody.innerHTML = appData.adminUsers.map((user) => `
     <tr>
-      <td>${escapeHtml(user.id)}</td>
-      <td>${escapeHtml(user.username || '')}</td>
-      <td>${escapeHtml(user.name || '-')}</td>
-      <td>
+      <td data-label="ID">${escapeHtml(user.id)}</td>
+      <td data-label="E-mail">${escapeHtml(user.username || '')}</td>
+      <td data-label="Nome">${escapeHtml(user.name || '-')}</td>
+      <td data-label="Ações">
         <div class="action-btns">
           <button class="btn-icon btn-edit" data-action="edit-user" data-id="${escapeHtml(user.id)}" title="Editar"><i class="fas fa-pen"></i></button>
           <button class="btn-icon btn-delete" data-action="delete-user" data-id="${escapeHtml(user.id)}" title="Excluir"><i class="fas fa-trash-alt"></i></button>
@@ -253,12 +250,14 @@ function renderWhatsAppOptionsList() {
 
   tbody.innerHTML = appData.whatsappOptions.map((option) => `
     <tr>
-      <td>${option.id}</td>
-      <td>${escapeHtml(option.title || '')}</td>
-      <td>${escapeHtml(option.whatsapp || '')}</td>
-      <td style="white-space: nowrap;">
-        <button type="button" class="btn btn-outline" data-action="edit-whatsapp" data-id="${option.id}">Editar</button>
-        <button type="button" class="btn btn-outline" data-action="delete-whatsapp" data-id="${option.id}" style="border-color:#ef4444; color:#ef4444;">Excluir</button>
+      <td data-label="ID">${option.id}</td>
+      <td data-label="Título">${escapeHtml(option.title || '')}</td>
+      <td data-label="WhatsApp">${escapeHtml(option.whatsapp || '')}</td>
+      <td data-label="Ações">
+        <div class="action-btns">
+          <button type="button" class="btn btn-outline" data-action="edit-whatsapp" data-id="${option.id}">Editar</button>
+          <button type="button" class="btn btn-outline" data-action="delete-whatsapp" data-id="${option.id}" style="border-color:#ef4444; color:#ef4444;">Excluir</button>
+        </div>
       </td>
     </tr>
   `).join('');

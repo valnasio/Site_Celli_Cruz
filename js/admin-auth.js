@@ -69,10 +69,7 @@
         const username = String(formData.get('username') || '');
         const password = String(formData.get('password') || '');
         
-        console.log('Tentando login com:', username);
         const result = await loginAdmin(username, password);
-        console.log('Login bem-sucedido:', result);
-        
         window.location.href = 'admin.html';
       } catch (error) {
         errorEl.textContent = error.message || 'Falha ao autenticar.';
