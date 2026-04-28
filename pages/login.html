@@ -24,11 +24,11 @@
   <div class="login-page">
     <div class="login-card">
       <h1>Login Admin</h1>
-      <p>Faça login para acessar o painel administrativo. Os dados não serão enviados pela URL.</p>
+      <p>Faça login com sua conta do Supabase Auth para acessar o painel administrativo com sessão JWT.</p>
       <form id="login-form">
         <div class="form-group">
-          <label for="username">Usuário</label>
-          <input id="username" name="username" type="text" autocomplete="username" required>
+          <label for="email">E-mail</label>
+          <input id="email" name="email" type="email" autocomplete="email" required>
         </div>
         <div class="form-group">
           <label for="password">Senha</label>
@@ -39,8 +39,12 @@
       <div class="login-error" id="login-error"></div>
       <div class="login-footer">
         <p>Esqueci minha senha? Entre em contato com o suporte.</p>
+      </div>
+    </div>
   </div>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/api/runtime-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
   <script src="../js/admin-auth.js"></script>
 </body>
 </html>

@@ -271,7 +271,7 @@
           <div class="admin-panel-body" style="padding: 28px;">
             <div class="info-box">
               <strong><i class="fas fa-circle-info"></i> Como usar</strong>
-              Altere as informações abaixo e clique em "Salvar Configurações". Depois exporte o JSON e substitua o arquivo <code>data/imoveis.json</code>.
+              As alteracoes desta secao sao salvas diretamente no Supabase. O export abaixo agora gera apenas um snapshot de backup, sem fallback local.
             </div>
             <form id="form-config">
               <div class="config-form-grid">
@@ -286,6 +286,14 @@
                 <div class="form-group">
                   <label>WhatsApp (somente números)</label>
                   <input type="text" name="whatsapp" placeholder="5575999371939">
+                </div>
+                <div class="form-group">
+                  <label>WhatsApp Vendas</label>
+                  <input type="text" name="whatsappVendas" placeholder="5575999371939">
+                </div>
+                <div class="form-group">
+                  <label>WhatsApp Atendimento</label>
+                  <input type="text" name="whatsappAtendimento" placeholder="5575999371939">
                 </div>
                 <div class="form-group">
                   <label>E-mail</label>
@@ -304,6 +312,10 @@
                   <input type="text" name="heroSubtitulo" placeholder="Encontre os melhores imóveis...">
                 </div>
                 <div class="form-group full-width">
+                  <label>Google Maps Embed</label>
+                  <input type="text" name="googleMapsEmbed" placeholder="https://www.google.com/maps/embed?...">
+                </div>
+                <div class="form-group full-width">
                   <label>Título da página Sobre</label>
                   <input type="text" name="aboutTitle" placeholder="Quem somos">
                 </div>
@@ -314,6 +326,10 @@
                 <div class="form-group full-width">
                   <label>Descrição da página Sobre</label>
                   <textarea name="aboutDescription" rows="4" placeholder="Adicione o texto de apresentação da empresa. Esta descrição aparece na página Sobre."></textarea>
+                </div>
+                <div class="form-group full-width">
+                  <label>Resumo do Sobre</label>
+                  <textarea name="aboutSummary" rows="3" placeholder="Texto resumido usado na home e no snapshot exportado."></textarea>
                 </div>
                 <div class="form-group full-width">
                   <label>Título da seção Missão</label>
@@ -437,7 +453,7 @@
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Usuário</th>
+                  <th>E-mail</th>
                   <th>Nome</th>
                   <th>Ações</th>
                 </tr>
@@ -461,39 +477,40 @@
           <div class="admin-panel-body" style="padding: 28px;">
             <div class="info-box">
               <strong><i class="fas fa-lightbulb"></i> Como funciona a persistência</strong>
-              O site usa o arquivo <code>data/imoveis.json</code> como banco de dados. Para salvar as alterações feitas neste admin:
-              <br><br>
-              <strong><i class="fas fa-star"></i> Novo - Salvar Automático:</strong> Clique em <strong>"Salvar Alterações"</strong> para exportar e salvar automaticamente<br><br>
-              <strong>Alternativa - Exportar Manual:</strong><br>
-              1. Faça as edições nos imóveis<br>
-              2. Clique em <strong>"Baixar imoveis.json"</strong><br>
-              3. Substitua o arquivo <code>data/imoveis.json</code> pelo arquivo baixado<br><br>
-              Para produção, considere configurar um backend PHP/Node para gerenciar dados automaticamente (ver Ajuda).
+              O painel salva os dados diretamente no Supabase Database e no Supabase Storage. O export gera um snapshot JSON para auditoria, backup e importacao completa se necessario.
             </div>
 
+<<<<<<< HEAD
             <div class="admin-dados-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
               <div class="admin-dados-card" style="background: #d1fae5; border-radius: var(--radius); padding: 24px;">
                 <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-save"></i> Salvar no Servidor</h4>
                 <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Exporta e salva automaticamente no arquivo <code>data/imoveis.json</code>.</p>
                 <button id="btn-save-server" class="btn btn-primary" style="background: #10b981; border-color: #10b981;"><i class="fas fa-save"></i> Salvar Alterações</button>
+=======
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
+              <div style="background: #d1fae5; border-radius: var(--radius); padding: 24px;">
+                <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-database"></i> Snapshot Atual</h4>
+                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Recarrega do Supabase e confirma o estado persistido no banco.</p>
+                <button id="btn-save-server" class="btn btn-primary" style="background: #10b981; border-color: #10b981;"><i class="fas fa-rotate"></i> Atualizar do Supabase</button>
+>>>>>>> ad69dbf053c4195978c75eb997bdae5b00477044
               </div>
               <div class="admin-dados-card" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
                 <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-upload"></i> Exportar</h4>
-                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Baixa o arquivo JSON com todas as alterações feitas nesta sessão.</p>
-                <button id="btn-export-json" class="btn btn-primary"><i class="fas fa-download"></i> Baixar imoveis.json</button>
+                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Baixa um snapshot JSON do estado atual do Supabase.</p>
+                <button id="btn-export-json" class="btn btn-primary"><i class="fas fa-download"></i> Baixar snapshot</button>
               </div>
               <div class="admin-dados-card" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 24px;">
                 <h4 style="color: var(--azul-escuro); margin-bottom: 8px;"><i class="fas fa-folder-open"></i> Importar</h4>
-                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Carrega um arquivo JSON para substituir os dados atuais.</p>
+                <p style="font-size: 14px; color: var(--cinza-texto); margin-bottom: 16px;">Substitui o estado atual do Supabase por um snapshot JSON compatível.</p>
                 <button id="btn-import-json" class="btn btn-outline"><i class="fas fa-file-import"></i> Selecionar arquivo JSON</button>
               </div>
             </div>
 
             <div style="margin-top: 24px;">
-              <h4 style="color: var(--azul-escuro); margin-bottom: 12px;"><i class="fas fa-file-code"></i> JSON Atual (para copiar)</h4>
-              <div class="log-area" id="json-preview">Clique em "Ver JSON atual" para visualizar.</div>
+              <h4 style="color: var(--azul-escuro); margin-bottom: 12px;"><i class="fas fa-file-code"></i> Snapshot Atual (para copiar)</h4>
+              <div class="log-area" id="json-preview">Clique em "Ver snapshot atual" para visualizar.</div>
               <br>
-              <button id="btn-show-json" class="btn btn-outline"><i class="fas fa-eye"></i> Ver JSON atual</button>
+              <button id="btn-show-json" class="btn btn-outline"><i class="fas fa-eye"></i> Ver snapshot atual</button>
             </div>
           </div>
         </div>
@@ -505,37 +522,38 @@
       <div id="section-ajuda" class="admin-section">
         <div class="admin-panel">
           <div class="panel-header"><h3><i class="fas fa-question-circle"></i> Documentação & Ajuda</h3></div>
+<<<<<<< HEAD
           <div class="admin-ajuda-body" style="padding: 28px; max-width: 800px;">
             
             <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-folder"></i> Estrutura de Arquivos</h4>
+=======
+          <div style="padding: 28px; max-width: 800px;">
+            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-database"></i> Arquitetura atual</h4>
+>>>>>>> ad69dbf053c4195978c75eb997bdae5b00477044
             <div class="log-area" style="color: #79c0ff; margin-bottom: 24px;">
-cellicruz/<br>
-├── index.html          <i class="fas fa-arrow-right"></i> Página inicial<br>
-├── pages/<br>
-│   ├── imoveis.html    <i class="fas fa-arrow-right"></i> Listagem de imóveis<br>
-│   ├── imovel-detalhe.html <i class="fas fa-arrow-right"></i> Detalhe do imóvel<br>
-│   └── admin.html      <i class="fas fa-arrow-right"></i> Este painel admin<br>
-├── css/<br>
-│   └── styles.css      <i class="fas fa-arrow-right"></i> Estilos principais<br>
-├── js/<br>
-│   ├── main.js         <i class="fas fa-arrow-right"></i> JavaScript do site<br>
-│   └── admin.js        <i class="fas fa-arrow-right"></i> JavaScript do admin<br>
-├── assets/<br>
-│   └── logo.png        <i class="fas fa-arrow-right"></i> Logotipo<br>
-└── data/<br>
-    └── imoveis.json    <i class="fas fa-arrow-right"></i> <i class="fas fa-database"></i> Banco de dados
+Frontend publico <i class="fas fa-arrow-right"></i> supabase-js no navegador<br>
+Painel admin <i class="fas fa-arrow-right"></i> Supabase Auth + JWT<br>
+Conteudo <i class="fas fa-arrow-right"></i> Supabase Database (Postgres)<br>
+Imagens <i class="fas fa-arrow-right"></i> Supabase Storage<br>
+Usuarios admin <i class="fas fa-arrow-right"></i> Auth Admin API via server.js
             </div>
 
+<<<<<<< HEAD
             <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-pen"></i> Como alterar informações</h4>
             <div class="admin-ajuda-block" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
+=======
+            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-pen"></i> Fluxo recomendado</h4>
+            <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
+>>>>>>> ad69dbf053c4195978c75eb997bdae5b00477044
               <p style="font-size: 15px; line-height: 1.8; color: var(--cinza-texto);">
-                <strong style="color: var(--azul-escuro);">Imóveis:</strong> Vá para "Imóveis" <i class="fas fa-arrow-right"></i> clique no <i class="fas fa-pen"></i> do imóvel <i class="fas fa-arrow-right"></i> edite <i class="fas fa-arrow-right"></i> clique "Salvar" <i class="fas fa-arrow-right"></i> exporte o JSON.<br><br>
-                <strong style="color: var(--azul-escuro);">Fotos:</strong> Cole a URL da imagem no campo "URL da Imagem". Use serviços como Imgur, Cloudinary, ou suas próprias fotos hospedadas.<br><br>
-                <strong style="color: var(--azul-escuro);">Config geral:</strong> Vá em "Configurações" → edite telefone, WhatsApp, e-mail, etc.<br><br>
-                <strong style="color: var(--azul-escuro);">Preview:</strong> Ao editar um imóvel, você vê uma prévia do card em tempo real no modal.
+                <strong style="color: var(--azul-escuro);">Imóveis:</strong> edite no modal e salve. As capas e fotos novas sobem direto para o Supabase Storage.<br><br>
+                <strong style="color: var(--azul-escuro);">Configurações:</strong> telefone, WhatsApp, e-mail, hero e textos institucionais são persistidos imediatamente no banco.<br><br>
+                <strong style="color: var(--azul-escuro);">Campos avançados:</strong> use Exportar/Importar para trabalhar com o snapshot completo quando precisar ajustar galerias, carrossel da missão ou outros campos não expostos em formulário visual.<br><br>
+                <strong style="color: var(--azul-escuro);">Usuários:</strong> o login usa Supabase Auth. Novos administradores precisam de e-mail e senha.
               </p>
             </div>
 
+<<<<<<< HEAD
             <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-wrench"></i> Integração com E-mail</h4>
             <div class="admin-ajuda-block" style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px; margin-bottom: 24px;">
               <p style="font-size: 14px; line-height: 1.8; color: var(--cinza-texto);">
@@ -574,6 +592,15 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
 &nbsp;&nbsp;echo json_encode(['error' => 'JSON inválido']);<br>
 }<br>
 ?>
+=======
+            <h4 style="color: var(--azul-escuro); margin-bottom: 12px; font-size: 18px;"><i class="fas fa-key"></i> Variáveis obrigatórias</h4>
+            <div style="background: var(--cinza-bg); border-radius: var(--radius); padding: 20px;">
+              <div class="log-area" style="font-size: 12px;">
+SUPABASE_URL=https://seu-projeto.supabase.co<br>
+SUPABASE_ANON_KEY=eyJ...<br>
+SUPABASE_SERVICE_ROLE_KEY=eyJ...<br>
+SUPABASE_STORAGE_BUCKET=uploads
+>>>>>>> ad69dbf053c4195978c75eb997bdae5b00477044
               </div>
             </div>
           </div>
@@ -675,6 +702,14 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
             <input type="checkbox" name="destaque" id="check-destaque" style="width: 18px; height: 18px;">
             <label for="check-destaque" style="margin: 0; cursor: pointer;">⭐ Exibir em destaque na home</label>
           </div>
+        </div>
+
+        <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 20px 0; border-left: 4px solid #0ea5e9;">
+          <h4 style="color: var(--azul-escuro); margin: 0 0 16px 0;">Plantas do Imóvel</h4>
+          <div id="plantas-list" style="margin-bottom: 12px;"></div>
+          <button type="button" id="btn-add-planta" class="btn btn-outline" style="font-size: 13px; padding: 8px 12px;">
+            + Adicionar Planta
+          </button>
         </div>
 
         <!-- SEÇÃO: CÔMODOS COM FOTOS -->
@@ -782,8 +817,8 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
             <input type="text" name="name" placeholder="Ex: Nome do Admin" required>
           </div>
           <div class="form-group" style="grid-column: 1/-1;">
-            <label>Usuário *</label>
-            <input type="text" name="username" placeholder="Ex: admin" required>
+            <label>E-mail *</label>
+            <input type="email" name="email" placeholder="admin@cellicruz.com.br" required>
           </div>
           <div class="form-group" style="grid-column: 1/-1;">
             <label>Senha <small style="font-weight:400; color: var(--cinza-texto);">(deixe em branco para não alterar)</small></label>
@@ -803,6 +838,9 @@ if (json_last_error() === JSON_ERROR_NONE) {<br>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/api/runtime-config.js"></script>
+<script src="../js/supabase-client.js"></script>
 <script src="../js/admin-auth.js"></script>
 <script src="../js/admin.js"></script>
 <script>
@@ -815,6 +853,7 @@ function mostrarJSON() {
 const originais = {
   imoveis: 'Gerenciar Imóveis',
   config: 'Configurações do Site',
+  whatsapp: 'WhatsApp e Loteamentos',
   usuarios: 'Usuários Admin',
   carousel: 'Carrossel de Publicidade',
   dados: 'Importar / Exportar Dados',
